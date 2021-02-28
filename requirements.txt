@@ -1,5 +1,11 @@
+numpy
+matplotlib
 torch
 torchvision
 tensorboard==2.4.0
-imageio
-numpy
+imageio.
+pillow
+pandas
+seaborn
+SciPy
+scikit-learn
