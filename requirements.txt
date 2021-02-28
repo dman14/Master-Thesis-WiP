@@ -3,7 +3,7 @@ matplotlib
 torch
 torchvision
 tensorboard==2.4.0
-imageio.
+imageio
 pillow
 pandas
 seaborn
