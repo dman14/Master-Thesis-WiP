@@ -1,0 +1,8 @@
+torch
+torchvision
+tensorboard==2.4.0
+imageio
+numpy
+pickle
+
+
