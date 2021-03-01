@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from torchvision import transforms
+import PIL.Image as pil_image
 
 def imshow(image, ax=None, title=None, normalize=False, size = (5,5)):
     """Imshow for Tensor."""
@@ -45,6 +46,34 @@ def save_img(img, name="saved_img", path=None, form=".png"):
     trans(img).save(dest)
 
 
-  
+def rescale(image, scale = 4, reupscale= None, single = None):
+  to_pil_image = transforms.ToPILImage()
 
+  try:
+    hr = to_pil_image(image)
+  except:
+    hr = image
+  hr_width = (hr.width // scale) * scale
+  hr_height = (hr.height // scale) * scale
 
+  # Resizing hr image by rounding the width and height to be divisible
+  hr = hr.resize((hr_width, hr_height), resample=pil_image.BICUBIC)
+
+  lr = hr.resize((hr_width // scale, hr_height // scale), resample=pil_image.BICUBIC)
+  if reupscale:
+    lr = lr.resize((lr.width * scale, lr.height * scale), resample=pil_image.BICUBIC)
+
+  pil_to_tensor = transforms.ToTensor()(hr).unsqueeze_(0)
+  tensor_to_pil = transforms.ToPILImage()(pil_to_tensor.squeeze_(0))
+  hr = pil_to_tensor
+
+  pil_to_tensor2 = transforms.ToTensor()(lr).unsqueeze_(0)
+  tensor_to_pil2 = transforms.ToPILImage()(pil_to_tensor2.squeeze_(0))
+  lr = pil_to_tensor2
+
+  if single == "lr":
+    return lr
+  elif single == "hr":
+    return hr
+  else:
+    return (lr,hr)
