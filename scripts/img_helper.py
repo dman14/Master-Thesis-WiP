@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-from torchvision import transforms
+import torch
 import PIL.Image as pil_image
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
 
 def imshow(image, ax=None, title=None, normalize=False, size = (5,5)):
     """Imshow for Tensor."""
@@ -57,7 +59,8 @@ def rescale(image, scale = 4, reupscale= None, single = None):
   hr_height = (hr.height // scale) * scale
 
   # Resizing hr image by rounding the width and height to be divisible
-  hr = hr.resize((hr_width, hr_height), resample=pil_image.BICUBIC)
+  if (hr_width != hr.width) or (hr_height != hr.height):
+    hr = hr.resize((hr_width, hr_height), resample=pil_image.BICUBIC)
 
   lr = hr.resize((hr_width // scale, hr_height // scale), resample=pil_image.BICUBIC)
   if reupscale:

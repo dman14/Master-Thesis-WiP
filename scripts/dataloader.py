@@ -10,29 +10,51 @@ from torch import nn, Tensor
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+class SRDataset(Dataset):
+  """Super Resolution dataset."""
+
+  def __init__(self, root_dir, transform=None):
+    """
+    Args:
+        root_dir (string): Directory with all the images.
+        transform (callable, optional): Optional transform to be applied
+        on a sample.
+   """
+    self.images_frame = os.listdir(root_dir)
+    self.root_dir = root_dir
+    self.transform = transform
+    self.set_rescaler()
+
+  def __len__(self):
+    return len(self.images_frame)
+
+  def set_rescaler(self, scale=4, reupscale =None, single= None):
+    self.scale = scale
+    self.reupscale = None
+    self.single = None
+
+  def __getitem__(self, idx):
+    if torch.is_tensor(idx):
+      idx = idx.tolist()
 
 
-transform = transforms.Compose([transforms.Resize(100),
-                                 transforms.CenterCrop(96),
+    img_name = os.path.join(self.root_dir,
+                            self.images_frame[idx])
+    image = Image.open(img_name)
+
+    if self.transform:
+      image = self.transform(image)
+
+    aux = rescale(image, self.scale, self.reupscale, self.single)
+    if self.single:
+      sample = aux
+    else:
+      sample = {'lr': aux[0], 'hr': aux[1]}
+
+    return sample
+
+def SRTransform(size):
+  transform = transforms.Compose([transforms.Resize(size),
+                                 transforms.CenterCrop(size),
                                  transforms.ToTensor()])
-
-def init_dataloader_upscaled(train_path, test_path, batch_size = 32, scale = 4):
-
-  training_dataset = datasets.ImageFolder(train_path, transform=transform)
-  test_dataset = datasets.ImageFolder(test_path, transform=transform)
-
-
-  image_sets =[]
-  for i in range(len(training_dataset)):
-      image_sets.append(rescale(training_dataset[i][0],scale = scale))
-
-  trainloader = torch.utils.data.DataLoader(image_sets, shuffle=True, batch_size= batch_size)
-
-  image_sets2 =[]
-  for i in range(len(test_dataset)):
-      image_sets2.append(rescale(test_dataset[i][0],scale = scale))
-
-  testloader = torch.utils.data.DataLoader(image_sets2, shuffle=True, batch_size= batch_size)
-  
-
-  return trainloader, testloader
+  return transform
