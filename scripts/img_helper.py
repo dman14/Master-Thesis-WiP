@@ -48,35 +48,44 @@ def save_img(img, name="saved_img", path=None, form=".png"):
     trans(img).save(dest)
 
 
-def rescale(image, scale = 4, reupscale= None, single = None):
-  to_pil_image = transforms.ToPILImage()
+class Rescaler(object):
 
-  try:
-    hr = to_pil_image(image)
-  except:
-    hr = image
-  hr_width = (hr.width // scale) * scale
-  hr_height = (hr.height // scale) * scale
+    def __init__(self, scale = 4, reupscale= None, single = None):
+        self.scale = scale
+        self.reupscale = reupscale
+        self.single = single
 
-  # Resizing hr image by rounding the width and height to be divisible
-  if (hr_width != hr.width) or (hr_height != hr.height):
-    hr = hr.resize((hr_width, hr_height), resample=pil_image.BICUBIC)
+    def __call__(self, image):
+      to_pil_image = transforms.ToPILImage()
 
-  lr = hr.resize((hr_width // scale, hr_height // scale), resample=pil_image.BICUBIC)
-  if reupscale:
-    lr = lr.resize((lr.width * scale, lr.height * scale), resample=pil_image.BICUBIC)
+      try:
+        hr = to_pil_image(image)
+      except:
+        hr = image
+      hr_width = (hr.width // self.scale) * self.scale
+      hr_height = (hr.height // self.scale) * self.scale
 
-  pil_to_tensor = transforms.ToTensor()(hr).unsqueeze_(0)
-  tensor_to_pil = transforms.ToPILImage()(pil_to_tensor.squeeze_(0))
-  hr = pil_to_tensor
+      # Resizing hr image by rounding the width and height to be divisible
+      if (hr_width != hr.width) or (hr_height != hr.height):
+        hr = hr.resize((hr_width, hr_height), resample=pil_image.BICUBIC)
 
-  pil_to_tensor2 = transforms.ToTensor()(lr).unsqueeze_(0)
-  tensor_to_pil2 = transforms.ToPILImage()(pil_to_tensor2.squeeze_(0))
-  lr = pil_to_tensor2
+      lr = hr.resize((hr_width // self.scale, hr_height // self.scale),
+                    resample=pil_image.BICUBIC)
+      if self.reupscale:
+        lr = lr.resize((lr.width * self.scale, lr.height * self.scale),
+                      resample=pil_image.BICUBIC)
 
-  if single == "lr":
-    return lr
-  elif single == "hr":
-    return hr
-  else:
-    return (lr,hr)
+      pil_to_tensor = transforms.ToTensor()(hr).unsqueeze_(0)
+      tensor_to_pil = transforms.ToPILImage()(pil_to_tensor.squeeze_(0))
+      hr = pil_to_tensor
+
+      pil_to_tensor2 = transforms.ToTensor()(lr).unsqueeze_(0)
+      tensor_to_pil2 = transforms.ToPILImage()(pil_to_tensor2.squeeze_(0))
+      lr = pil_to_tensor2
+
+      if self.single == "lr":
+        return lr
+      elif self.single == "hr":
+        return hr
+      else:
+        return (lr,hr)

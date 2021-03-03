@@ -7,8 +7,8 @@ from torch.nn.functional import softplus
 from torch.distributions import Distribution
 
 from torch import nn, Tensor
-from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
+from torch.utils.data import Dataset, DataLoader
 
 class SRDataset(Dataset):
   """Super Resolution dataset."""
