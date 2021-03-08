@@ -84,5 +84,4 @@ class SRDataLoader(DataLoader):
     return DataLoader(dataset, batch_size=2,
                       shuffle=True, num_workers=0)
   def get_dataloader(self):
-    #return self.dataloader
-    return 2
+    return self.dataloader
