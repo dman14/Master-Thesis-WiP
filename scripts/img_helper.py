@@ -49,7 +49,11 @@ def save_img(img, name="saved_img", path=None, form=".png"):
 
 
 class Rescaler(object):
-
+"""
+Rescaler class for rescaling images by a wanted factor.
+reupscale= flag for upscaling the downscaled images back to the original size.
+single = flag to return only on image, 'lr' or 'hr' instead of both
+"""
     def __init__(self, scale = 4, reupscale= None, single = None):
         self.scale = scale
         self.reupscale = reupscale

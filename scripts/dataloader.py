@@ -52,13 +52,21 @@ class SRDataset(Dataset):
 
     return sample
 
-def SRTransform(size):
+def SRTransform(size=64):
+  """
+  Function to return a wanted transform for a dataset
+  needs size to which to resize the images
+  """
   transform = transforms.Compose([transforms.Resize(size),
                                  transforms.CenterCrop(size),
                                  transforms.ToTensor()])
   return transform
 
 class SRDataLoader(DataLoader):
+  """
+  Dataloader class to bring up and initialize a dataloader,
+  transform, dataset and a rescaler
+  """
   def __init__(self, path,
               scale=4,reupscale =None,
               single= None, size=64,
