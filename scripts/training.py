@@ -6,6 +6,7 @@ class Trainer:
     """
 
     """
+    #################################################################
     continue
 
   def setup_hyperparams(self, batch_size = 30, test_batch_size = 10,
@@ -71,23 +72,42 @@ class Trainer:
     """
     self.test_step = test_step
 
-  def setup_dataloaders(self, train_dataloader, test_dataloader):
+  def setup_dataloaders(self, train_path, val_path,
+                        scale = 4, reupscale = None,
+                        single = None, size = 64,
+                        batch_size = 4, shuffle = True,
+                        num_workers = 0):
     """
     Set-up and load the dataloders for the training
+    using the SRDataLoader class
     """
-    self.train_dataloader = train_dataloader
+    self.dataloader_main = SEDataLoader(train_path , scale,
+                                        reupscale, single,
+                                        size, batch_size,
+                                        shuffle, num_workers)
+    self.train_dataloader = dataloader_main.get_dataloader()
+
+    self.dataloader_main = SEDataLoader(val_path , scale,
+                                        reupscale, single,
+                                        size, batch_size,
+                                        shuffle, num_workers)
     self.test_dataloader = test_dataloader
+
+  def load_model(self, model)
+    self.model = model
 
   def setup_optimizer(self):
     """
     
     """
+    #############################################
     continue
 
   def setup_loss(self):
     """
     
     """
+    #############################################
     continue
 
   def warmup(self):
@@ -95,17 +115,20 @@ class Trainer:
     https://www.reddit.com/r/MachineLearning/comments/es9qv7/d_warmup_vs_initially_high_learning_rate/
     this might be the momentum in the hyperparameters tho
     """
+    #############################################
     continue
   
   def setup_grad_skip(self):
     """
     we should set-up here the gradient skipping like in the VDVAE paper
     """
+    #############################################
     continue
 
-  def start_training():
+  def start_training(self):
     """
-
+    Main function for starting the training proccess after all the other
+    parth have been initialized
     """
     # Set cuda or cpu based on config and availability
     use_cuda = not config.no_cuda and torch.cuda.is_available()
@@ -117,10 +140,6 @@ class Trainer:
     torch.manual_seed(config.seed) # pytorch random seed
     numpy.random.seed(config.seed) # numpy random seed
     torch.backends.cudnn.deterministic = True
-
-    ###
-    # Set Dataloaders
-    ###
 
     ###
     # Set Model
@@ -140,8 +159,20 @@ class Trainer:
     wandb.watch(model, log="all")
 
     for epoch in range(1, config.epochs + 1):
-      self.train_step() #MAKE TRAIN FUNCTION
-      self.test_step()  #MAKE TEST FUNCTION
+
+      for batch_idx, (data, target) in enumerate(self.train_dataloader):
+        self.train_step(self.model, device, data, target, optimizer)
+        #SOME OTHER STUFF NEED TO HAPPEN HERE
+
+      for batch_idx, (data, target) in enumerate(self.val_dataloader):
+        self.test_step(self.model, device, data, target)
+        #SOME OTHER STUFF HERE TOO
 
     #Save the model after the training is finished
     self.model_save()
+
+  def Main_start(self)
+  """
+  Function that receives all arguments, initializes every module, and starts
+  the training
+  """

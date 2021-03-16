@@ -48,7 +48,8 @@ class SRDataset(Dataset):
     if self.rescaler.single:
       sample = aux
     else:
-      sample = {'lr': aux[0], 'hr': aux[1]}
+      #sample = {'lr': aux[0], 'hr': aux[1]}
+      sample = (aux[0],aux[1])
 
     return sample
 
@@ -72,24 +73,23 @@ class SRDataLoader(DataLoader):
               single= None, size=64,
               batch_size=4, shuffle=True,
                num_workers=0):
-    
-    self.transform = self.init_transform(size)
-    self.rescaler = self.init_rescaler(scale, reupscale, single)
-    self.dataset = self.init_dataset(path, self.transform, self.rescaler)
-    self.dataloader = self.init_dataloader(self.dataset,batch_size,
-                                           shuffle,num_workers)
+    self.batch_size = batch_size
+    self.shuffle = shuffle 
+    self.num_workers = num_workers
+    self.init_transform(size)
+    self.init_rescaler(scale, reupscale, single)
+    self.init_dataset(path, self.transform, self.rescaler)
 
   def init_transform(self,size):
-    return SRTransform(size)
+    self.transform = SRTransform(size)
 
   def init_rescaler(self, scale, reupscale, single):
-    return Rescaler(scale, reupscale, single)
+    self.rescaler = Rescaler(scale, reupscale, single)
 
   def init_dataset(self, path, transform, rescaler):
-    return SRDataset(path, transform, rescaler)
+    self.dataset = SRDataset(path, transform, rescaler)
 
-  def init_dataloader(self,dataset,batch_size,shuffle,num_workers):
-    return DataLoader(dataset, batch_size=2,
-                      shuffle=True, num_workers=0)
   def get_dataloader(self):
-    return self.dataloader
+    return DataLoader(self.dataset, batch_size=self.batch_size,
+                      shuffle=self.shuffle,
+                      num_workers=self.num_workers)
