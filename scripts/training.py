@@ -6,8 +6,16 @@ class Trainer:
     """
 
     """
-    #################################################################
-    continue
+    # Set cuda or cpu based on config and availability
+    self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
+    self.device = torch.device("cuda" if self.use_cuda else "cpu")
+    #kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+
+    # Set random seeds and deterministic pytorch for reproducibility
+    random.seed(self.config.seed)       # python random seed
+    torch.manual_seed(self.config.seed) # pytorch random seed
+    numpy.random.seed(self.config.seed) # numpy random seed
+    torch.backends.cudnn.deterministic = True
 
   def setup_hyperparams(self, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
@@ -50,12 +58,12 @@ class Trainer:
     wandb.watch_called = False # Re-run the model without restarting
                                #the runtime, unnecessary after the next release
 
-  def model_save(self, path):
+  def model_save(self, save_path = "/"):
     """
     Saves the model in the current state to the specified path, and with 
     the specified name
     """
-    torch.save(model.state_dict(), path + self.project_name + ".h5")
+    torch.save(model.state_dict(), save_path + self.project_name + ".h5")
     wandb.save(self.project_name + ".h5")
 
   def setup_train_step(self, training_step):
@@ -75,40 +83,46 @@ class Trainer:
   def setup_dataloaders(self, train_path, val_path,
                         scale = 4, reupscale = None,
                         single = None, size = 64,
-                        batch_size = 4, shuffle = True,
-                        num_workers = 0):
+                        shuffle = True, num_workers = 0):
     """
     Set-up and load the dataloders for the training
     using the SRDataLoader class
     """
     self.dataloader_main = SEDataLoader(train_path , scale,
                                         reupscale, single,
-                                        size, batch_size,
+                                        size, self.config.batch_size,
                                         shuffle, num_workers)
     self.train_dataloader = dataloader_main.get_dataloader()
 
     self.dataloader_main = SEDataLoader(val_path , scale,
                                         reupscale, single,
-                                        size, batch_size,
+                                        size, self.config.test_batch_size,
                                         shuffle, num_workers)
     self.test_dataloader = test_dataloader
 
   def load_model(self, model)
     self.model = model
 
-  def setup_optimizer(self):
+  def setup_optimizer(self, optimizer = optim.SGD(), optim_kwargs = None):
+    """
+    Set-up of the optimizer to be used for the training of the model.
+    the arguments that need to be supplied are optimizer, and args containing
+    extra arguments for the specific type of chosen optimizer
+    """
+    if optim_kwargs is None:
+        optim_kwargs = {}
+    try:
+      self.optimizer = optimizer(model.parameters(), lr = self.config.lr,
+                                momentum = self.config.momentum, **optim_kwargs)
+    except:
+      self.optimizer = optimizer(model.parameters(), lr = self.config.lr,
+                                optim_kwargs)
+      
+  def setup_loss(self, loss_func):
     """
     
     """
-    #############################################
-    continue
-
-  def setup_loss(self):
-    """
-    
-    """
-    #############################################
-    continue
+    self.loss_func = loss_func
 
   def warmup(self):
     """
@@ -125,34 +139,13 @@ class Trainer:
     #############################################
     continue
 
+  def resume_training(self, resume_path)
+    self.model.load_state_dict(torch.load(resume_path))
   def start_training(self):
     """
     Main function for starting the training proccess after all the other
     parth have been initialized
     """
-    # Set cuda or cpu based on config and availability
-    use_cuda = not config.no_cuda and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
-    #kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-
-    # Set random seeds and deterministic pytorch for reproducibility
-    random.seed(config.seed)       # python random seed
-    torch.manual_seed(config.seed) # pytorch random seed
-    numpy.random.seed(config.seed) # numpy random seed
-    torch.backends.cudnn.deterministic = True
-
-    ###
-    # Set Model
-    ###
-
-    ###
-    # Set optimizer
-    ###
-
-    ###
-    # Set evaluator
-    ###
-
     # Starting the watch in order to log all layer dimensions, gradients and
     # model parameters to the dashboard
     # Using log="all" log histograms of parameter values in addition to gradients
@@ -160,19 +153,97 @@ class Trainer:
 
     for epoch in range(1, config.epochs + 1):
 
-      for batch_idx, (data, target) in enumerate(self.train_dataloader):
-        self.train_step(self.model, device, data, target, optimizer)
-        #SOME OTHER STUFF NEED TO HAPPEN HERE
+        loss = self.train_step(self.model, self.device,
+                               self.train_dataloader, self.optimizer,
+                               self.loss_func)
+        wanb.log(loss)
 
-      for batch_idx, (data, target) in enumerate(self.val_dataloader):
-        self.test_step(self.model, device, data, target)
-        #SOME OTHER STUFF HERE TOO
+        loss = self.test_step(self.model, self.device,
+                              self.test_dataloader, self.loss_func)
+        wanb.log(loss)
 
-    #Save the model after the training is finished
-    self.model_save()
-
-  def Main_start(self)
+  def Main_start(self, batch_size = 30, test_batch_size = 10,
+                 epochs = 10, lr = 0.01, momentum = 0.5,
+                 no_cuda = False, seed = 42, log_interval = 10,
+                 project_name="UNSET", save_path = "/",
+                 training_step, test_step, model, train_path,
+                 val_path, scale = 4, reupscale = None,
+                 single = None, size = 64, shuffle = True,
+                 num_workers = 0, optimizer = optim.SGD(),
+                 optim_kwargs = None, resume = False,
+                 resume_path = None, loss_func)
   """
   Function that receives all arguments, initializes every module, and starts
   the training
   """
+  self.setup_wandb(project_name)
+  self.setup_hyperparams(batch_size, test_batch_size)
+
+  self.setup_dataloaders(train_path, val_path, scale, reupscale, 
+                         single, size, shuffle, num_workers)
+  
+  self.load_model(model)
+  self.setup_optimizer(optimizer, optim_kwargs)
+  self.setup_train_step(training_step)
+  self.setup_test_step(test_step)
+  self.setup_loss = loss_func
+  if resume == True:
+    self.resume_training(resume_path)
+
+  #starting the training with all the parameters and settings provided
+  self.start_training()
+
+  #Save the model after the training is finished
+  self.model_save(save_path)
+
+
+def train_step(args, model, device, train_loader, optimizer, loss_func):
+    model.train()
+    total_loss = 0
+    for data, target in train_loader:
+        
+        optimizer.zero_grad()
+        data = data.to_device(data)
+        target = target.to_device(target)
+        
+        output = model.forward(data,target)
+
+        loss = loss_func(output, target)
+
+        total_loss += loss
+        
+        loss.backward()
+    
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
+                                              params.grad_clip).item()
+        
+        if args.skip_threshold == -1 or grad_norm < args.skip_threshold:
+            optimizer.step()
+
+    return {"Training Loss": total_loss}
+
+ 
+
+def test_step(args, model, device, test_loader, loss_func):
+    model.eval()
+    
+    example_images = []
+    total_loss = 0
+    with torch.no_grad():
+    
+        for data,target in test_loader:
+            
+            data = data.to_device(data)
+            target = target.to_device(target)
+            
+            output = model(data)
+            
+            test_loss = loss_func(output, target)
+            total_loss += test_loss
+            
+    example_images.append(wandb.Image(data[0],
+                                      caption="Pred: {} Truth: {}".format(output[0].item(),
+                                                                          target[0])))
+    
+    return {"Examples": example_images,
+            "Test Loss": total_loss}
