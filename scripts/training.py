@@ -1,4 +1,9 @@
 import torch.optim as optim
+import torch
+import random
+import numpy as np
+from scripts.dataloader import *
+from scripts.img_helper import *
 
 class Trainer:
   """
@@ -10,7 +15,7 @@ class Trainer:
     """
     
 
-  def setup_hyperparams(self, batch_size = 30, test_batch_size = 10,
+  def setup_hyperparams(self, wandb, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
                         no_cuda = False, seed = 42, log_interval = 10):
     """
@@ -39,7 +44,7 @@ class Trainer:
     self.config.seed = seed
     self.config.log_interval = log_interval
 
-  def setup_wandb(self, project_name="UNSET"):
+  def setup_wandb(self, wandb, project_name="UNSET"):
     """
     Initializes WandB for a new run
 
@@ -85,13 +90,13 @@ class Trainer:
                                         reupscale, single,
                                         size, self.config.batch_size,
                                         shuffle, num_workers)
-    self.train_dataloader = dataloader_main.get_dataloader()
+    self.train_dataloader = self.dataloader_main.get_dataloader()
 
     self.dataloader_main = SRDataLoader(val_path , scale,
                                         reupscale, single,
                                         size, self.config.test_batch_size,
                                         shuffle, num_workers)
-    self.test_dataloader = test_dataloader
+    self.test_dataloader = self.dataloader_main.get_dataloader()
 
   def load_model(self, model):
     self.model = model
@@ -102,13 +107,15 @@ class Trainer:
     the arguments that need to be supplied are optimizer, and args containing
     extra arguments for the specific type of chosen optimizer
     """
+    if optim_kwargs == None:
+      optim_kwargs = {}
     optim_kwargs["lr"] = self.config.lr
     optim_kwargsm = optim_kwargs
-    optim_kwargsm["momentum"] = self.config.momentum
+    #optim_kwargsm["momentum"] = self.config.momentum
     try:
-      self.optimizer = optimizer(model.parameters(), optim_kwargsm)
-    except:
-      self.optimizer = optimizer(model.parameters(), optim_kwargs)
+      self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
+    #except:
+    #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
       
   def setup_loss(self, loss_func):
     """
@@ -156,7 +163,7 @@ class Trainer:
         wanb.log(loss)
 
   def Main_start(self, training_step, test_step, model, train_path,
-                 val_path, loss_func, batch_size = 30, 
+                 val_path, loss_func, wandb, batch_size = 30, 
                  test_batch_size = 10, epochs = 10, lr = 0.01,
                  momentum = 0.5, no_cuda = False, seed = 42,
                  log_interval = 10, project_name="UNSET", 
@@ -164,13 +171,13 @@ class Trainer:
                  single = None, size = 64, shuffle = True,
                  num_workers = 0, optimizer = optim.SGD,
                  optim_kwargs = None, resume = False, 
-                 resume_path = None):
+                 resume_path = None,):
     """
     Function that receives all arguments, initializes every module, 
     and starts the training
     """
-    self.setup_wandb(project_name)
-    self.setup_hyperparams(batch_size, test_batch_size)
+    self.setup_wandb(wandb, project_name)
+    self.setup_hyperparams(wandb, batch_size, test_batch_size)
 
     # Set cuda or cpu based on config and availability
     self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
@@ -180,7 +187,7 @@ class Trainer:
     # Set random seeds and deterministic pytorch for reproducibility
     random.seed(self.config.seed)       # python random seed
     torch.manual_seed(self.config.seed) # pytorch random seed
-    numpy.random.seed(self.config.seed) # numpy random seed
+    np.random.seed(self.config.seed) # numpy random seed
     torch.backends.cudnn.deterministic = True
 
     self.setup_dataloaders(train_path, val_path, scale, reupscale, 
