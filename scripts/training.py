@@ -8,16 +8,7 @@ class Trainer:
     """
 
     """
-    # Set cuda or cpu based on config and availability
-    self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
-    self.device = torch.device("cuda" if self.use_cuda else "cpu")
-    #kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-
-    # Set random seeds and deterministic pytorch for reproducibility
-    random.seed(self.config.seed)       # python random seed
-    torch.manual_seed(self.config.seed) # pytorch random seed
-    numpy.random.seed(self.config.seed) # numpy random seed
-    torch.backends.cudnn.deterministic = True
+    
 
   def setup_hyperparams(self, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
@@ -180,6 +171,17 @@ class Trainer:
     """
     self.setup_wandb(project_name)
     self.setup_hyperparams(batch_size, test_batch_size)
+
+    # Set cuda or cpu based on config and availability
+    self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
+    self.device = torch.device("cuda" if self.use_cuda else "cpu")
+    #kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+
+    # Set random seeds and deterministic pytorch for reproducibility
+    random.seed(self.config.seed)       # python random seed
+    torch.manual_seed(self.config.seed) # pytorch random seed
+    numpy.random.seed(self.config.seed) # numpy random seed
+    torch.backends.cudnn.deterministic = True
 
     self.setup_dataloaders(train_path, val_path, scale, reupscale, 
                           single, size, shuffle, num_workers)

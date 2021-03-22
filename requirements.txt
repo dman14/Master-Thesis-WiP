@@ -9,4 +9,4 @@ pandas
 seaborn
 SciPy
 scikit-learn
-wandb
+wandb -q 
