@@ -69,7 +69,7 @@ class Trainer:
     A training step function should be passed here to incrorporate it in the
     main training module
     """
-    self.training_step = training_step
+    self.train_step = training_step
   
   def setup_test_step(self, test_step):
     """
@@ -112,8 +112,8 @@ class Trainer:
     optim_kwargs["lr"] = self.config.lr
     optim_kwargsm = optim_kwargs
     #optim_kwargsm["momentum"] = self.config.momentum
-    try:
-      self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
+    #try:
+    self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
     #except:
     #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
       
@@ -140,7 +140,7 @@ class Trainer:
 
   def resume_training(self, resume_path):
     self.model.load_state_dict(torch.load(resume_path))
-  def start_training(self):
+  def start_training(self, wandb):
     """
     Main function for starting the training proccess after all the other
     parth have been initialized
@@ -148,10 +148,10 @@ class Trainer:
     # Starting the watch in order to log all layer dimensions, gradients and
     # model parameters to the dashboard
     # Using log="all" log histograms of parameter values in addition to gradients
-    wandb.watch(model, log="all")
-    model = model.to(self.device)
+    wandb.watch(self.model, log="all")
+    self.model = self.model.to(self.device)
 
-    for epoch in range(1, config.epochs + 1):
+    for epoch in range(1, self.config.epochs + 1):
 
         loss = self.train_step(self.model, self.device,
                                self.train_dataloader, self.optimizer,
@@ -197,12 +197,12 @@ class Trainer:
     self.setup_optimizer(optimizer, optim_kwargs)
     self.setup_train_step(training_step)
     self.setup_test_step(test_step)
-    self.setup_loss = loss_func
+    self.setup_loss(loss_func)
     if resume == True:
       self.resume_training(resume_path)
 
     #starting the training with all the parameters and settings provided
-    self.start_training()
+    self.start_training(wandb)
 
     #Save the model after the training is finished
     self.model_save(save_path)

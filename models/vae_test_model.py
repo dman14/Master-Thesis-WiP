@@ -14,7 +14,7 @@ from torch.nn.functional import softplus
 from torch.distributions import Distribution
 from torch.distributions import Bernoulli
 from torch.distributions import Normal
-
+from collections import defaultdict
 
 
 class ReparameterizedDiagonalGaussian(Distribution):
@@ -306,7 +306,7 @@ class VariationalInference(nn.Module):
         return loss, diagnostics, outputs
 
 
-def test_vae_train_step(args, model, device, train_loader, optimizer, loss_func):
+def test_vae_train_step(model, device, train_loader, optimizer, loss_func):
   model.train()
   training_epoch_data = defaultdict(list)
   for data, target in train_loader:
@@ -327,7 +327,7 @@ def test_vae_train_step(args, model, device, train_loader, optimizer, loss_func)
   return {"training elbo": training_data['elbo'][-1],
           "training kl": training_data['kl'][-1]}
 
-def test_vae_test_step(args, model, device, test_loader, loss_func):
+def test_vae_test_step(model, device, test_loader, loss_func):
   model.eval()
   training_epoch_data = defaultdict(list)
   with torch.no_grad():
