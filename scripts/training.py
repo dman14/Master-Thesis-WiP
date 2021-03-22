@@ -1,3 +1,5 @@
+import torch.optim as optim
+
 class Trainer:
   """
   We can add some comment here for later, could be really useful
@@ -88,35 +90,34 @@ class Trainer:
     Set-up and load the dataloders for the training
     using the SRDataLoader class
     """
-    self.dataloader_main = SEDataLoader(train_path , scale,
+    self.dataloader_main = SRDataLoader(train_path , scale,
                                         reupscale, single,
                                         size, self.config.batch_size,
                                         shuffle, num_workers)
     self.train_dataloader = dataloader_main.get_dataloader()
 
-    self.dataloader_main = SEDataLoader(val_path , scale,
+    self.dataloader_main = SRDataLoader(val_path , scale,
                                         reupscale, single,
                                         size, self.config.test_batch_size,
                                         shuffle, num_workers)
     self.test_dataloader = test_dataloader
 
-  def load_model(self, model)
+  def load_model(self, model):
     self.model = model
 
-  def setup_optimizer(self, optimizer = optim.SGD(), optim_kwargs = None):
+  def setup_optimizer(self, optimizer = optim.SGD, optim_kwargs = None):
     """
     Set-up of the optimizer to be used for the training of the model.
     the arguments that need to be supplied are optimizer, and args containing
     extra arguments for the specific type of chosen optimizer
     """
-    if optim_kwargs is None:
-        optim_kwargs = {}
+    optim_kwargs["lr"] = self.config.lr
+    optim_kwargsm = optim_kwargs
+    optim_kwargsm["momentum"] = self.config.momentum
     try:
-      self.optimizer = optimizer(model.parameters(), lr = self.config.lr,
-                                momentum = self.config.momentum, **optim_kwargs)
+      self.optimizer = optimizer(model.parameters(), optim_kwargsm)
     except:
-      self.optimizer = optimizer(model.parameters(), lr = self.config.lr,
-                                optim_kwargs)
+      self.optimizer = optimizer(model.parameters(), optim_kwargs)
       
   def setup_loss(self, loss_func):
     """
@@ -130,16 +131,16 @@ class Trainer:
     this might be the momentum in the hyperparameters tho
     """
     #############################################
-    continue
+    a = 1
   
   def setup_grad_skip(self):
     """
     we should set-up here the gradient skipping like in the VDVAE paper
     """
     #############################################
-    continue
+    a = 1
 
-  def resume_training(self, resume_path)
+  def resume_training(self, resume_path):
     self.model.load_state_dict(torch.load(resume_path))
   def start_training(self):
     """
@@ -150,6 +151,7 @@ class Trainer:
     # model parameters to the dashboard
     # Using log="all" log histograms of parameter values in addition to gradients
     wandb.watch(model, log="all")
+    model = model.to(self.device)
 
     for epoch in range(1, config.epochs + 1):
 
@@ -162,39 +164,39 @@ class Trainer:
                               self.test_dataloader, self.loss_func)
         wanb.log(loss)
 
-  def Main_start(self, batch_size = 30, test_batch_size = 10,
-                 epochs = 10, lr = 0.01, momentum = 0.5,
-                 no_cuda = False, seed = 42, log_interval = 10,
-                 project_name="UNSET", save_path = "/",
-                 training_step, test_step, model, train_path,
-                 val_path, scale = 4, reupscale = None,
+  def Main_start(self, training_step, test_step, model, train_path,
+                 val_path, loss_func, batch_size = 30, 
+                 test_batch_size = 10, epochs = 10, lr = 0.01,
+                 momentum = 0.5, no_cuda = False, seed = 42,
+                 log_interval = 10, project_name="UNSET", 
+                 save_path = "/", scale = 4, reupscale = None,
                  single = None, size = 64, shuffle = True,
-                 num_workers = 0, optimizer = optim.SGD(),
-                 optim_kwargs = None, resume = False,
-                 resume_path = None, loss_func)
-  """
-  Function that receives all arguments, initializes every module, and starts
-  the training
-  """
-  self.setup_wandb(project_name)
-  self.setup_hyperparams(batch_size, test_batch_size)
+                 num_workers = 0, optimizer = optim.SGD,
+                 optim_kwargs = None, resume = False, 
+                 resume_path = None):
+    """
+    Function that receives all arguments, initializes every module, 
+    and starts the training
+    """
+    self.setup_wandb(project_name)
+    self.setup_hyperparams(batch_size, test_batch_size)
 
-  self.setup_dataloaders(train_path, val_path, scale, reupscale, 
-                         single, size, shuffle, num_workers)
-  
-  self.load_model(model)
-  self.setup_optimizer(optimizer, optim_kwargs)
-  self.setup_train_step(training_step)
-  self.setup_test_step(test_step)
-  self.setup_loss = loss_func
-  if resume == True:
-    self.resume_training(resume_path)
+    self.setup_dataloaders(train_path, val_path, scale, reupscale, 
+                          single, size, shuffle, num_workers)
+    
+    self.load_model(model)
+    self.setup_optimizer(optimizer, optim_kwargs)
+    self.setup_train_step(training_step)
+    self.setup_test_step(test_step)
+    self.setup_loss = loss_func
+    if resume == True:
+      self.resume_training(resume_path)
 
-  #starting the training with all the parameters and settings provided
-  self.start_training()
+    #starting the training with all the parameters and settings provided
+    self.start_training()
 
-  #Save the model after the training is finished
-  self.model_save(save_path)
+    #Save the model after the training is finished
+    self.model_save(save_path)
 
 
 def train_step(args, model, device, train_loader, optimizer, loss_func):
@@ -213,7 +215,8 @@ def train_step(args, model, device, train_loader, optimizer, loss_func):
         total_loss += loss
         
         loss.backward()
-    
+        optimizer.step()
+        
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
                                               params.grad_clip).item()
         

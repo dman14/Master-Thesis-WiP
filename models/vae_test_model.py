@@ -304,3 +304,43 @@ class VariationalInference(nn.Module):
             diagnostics = {'elbo': elbo, 'log_px':log_px, 'kl': kl}
             
         return loss, diagnostics, outputs
+
+
+def test_vae_train_step(args, model, device, train_loader, optimizer, loss_func):
+  model.train()
+  training_epoch_data = defaultdict(list)
+  for data, target in train_loader:
+    optimizer.zero_grad()
+    data = data.to(device)
+    target = target.to(device)
+
+    loss, diagnostics, outputs = loss_func(model, data, target)
+
+    loss.backward()
+    optimizer.step()
+
+    for k, v in diagnostics.items():
+      training_data[k] += [v.mean().item()]
+  for k, v in training_epoch_data.items():
+    training_data[k] += [np.mean(training_epoch_data[k])]
+
+  return {"training elbo": training_data['elbo'][-1],
+          "training kl": training_data['kl'][-1]}
+
+def test_vae_test_step(args, model, device, test_loader, loss_func):
+  model.eval()
+  training_epoch_data = defaultdict(list)
+  with torch.no_grad():
+    for data,target in test_loader:
+      data = data.to(device)
+      target = target.to(device)
+
+      loss, diagnostics, outputs = lossfunc(model, data, target)
+
+      for k, v in diagnostics.items():
+        training_data[k] += [v.mean().item()]
+    for k, v in training_epoch_data.items():
+      training_data[k] += [np.mean(training_epoch_data[k])]
+
+  return {"training elbo": training_data['elbo'][-1],
+          "training kl": training_data['kl'][-1]}
