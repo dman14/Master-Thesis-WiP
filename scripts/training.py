@@ -61,7 +61,7 @@ class Trainer:
     Saves the model in the current state to the specified path, and with 
     the specified name
     """
-    torch.save(model.state_dict(), save_path + self.project_name + ".h5")
+    torch.save(self.model.state_dict(), save_path + self.project_name + ".h5")
     wandb.save(self.project_name + ".h5")
 
   def setup_train_step(self, training_step):
@@ -156,11 +156,11 @@ class Trainer:
         loss = self.train_step(self.model, self.device,
                                self.train_dataloader, self.optimizer,
                                self.loss_func)
-        wanb.log(loss)
+        wandb.log(loss)
 
         loss = self.test_step(self.model, self.device,
                               self.test_dataloader, self.loss_func)
-        wanb.log(loss)
+        wandb.log(loss)
 
   def Main_start(self, training_step, test_step, model, train_path,
                  val_path, loss_func, wandb, batch_size = 30, 

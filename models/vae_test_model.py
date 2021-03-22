@@ -309,6 +309,7 @@ class VariationalInference(nn.Module):
 def test_vae_train_step(model, device, train_loader, optimizer, loss_func):
   model.train()
   training_epoch_data = defaultdict(list)
+  training_data = defaultdict(list)
   for data, target in train_loader:
     optimizer.zero_grad()
     data = data.to(device)
@@ -330,12 +331,13 @@ def test_vae_train_step(model, device, train_loader, optimizer, loss_func):
 def test_vae_test_step(model, device, test_loader, loss_func):
   model.eval()
   training_epoch_data = defaultdict(list)
+  training_data = defaultdict(list)
   with torch.no_grad():
     for data,target in test_loader:
       data = data.to(device)
       target = target.to(device)
 
-      loss, diagnostics, outputs = lossfunc(model, data, target)
+      loss, diagnostics, outputs = loss_func(model, data, target)
 
       for k, v in diagnostics.items():
         training_data[k] += [v.mean().item()]
