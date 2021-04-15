@@ -1,3 +1,4 @@
+from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -5,7 +6,6 @@ import torch
 import PIL.Image as pil_image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
-from __future__ import print_function
 from math import ceil, floor
 import pandas as pd
 from pathlib import Path
