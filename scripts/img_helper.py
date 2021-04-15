@@ -252,9 +252,11 @@ def rgb2ycbcr(im_rgb):
 def quality_measure_YCbCr(target, output):
 
   target = (target.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
-  output = (output.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
+  #output = (output.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
+  #target = (target.transpose((1, 2, 0))*255).astype(np.uint8)
+  #output = (output.transpose((1, 2, 0))*255).astype(np.uint8)
   target = np.asarray(target)
-  output = np.asarray(output)
+  #output = np.asarray(output)
 
   target_ycbcr = rgb2ycbcr(target)
   output_ycbcr = rgb2ycbcr(output)
