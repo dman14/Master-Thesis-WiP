@@ -72,6 +72,9 @@ class Rescaler(object):
       hr = to_pil_image(image)
     except:
       hr = image
+      
+    hr = hr.convert(mode='RGB')
+    
     hr_width = (hr.width // self.scale) * self.scale
     hr_height = (hr.height // self.scale) * self.scale
 
