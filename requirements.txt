@@ -2,10 +2,11 @@ numpy
 matplotlib
 torch
 torchvision
-tensorboard==2.4.0
 imageio
 pillow
 pandas
 seaborn
 SciPy
 scikit-learn
+mpi4py
+apex
