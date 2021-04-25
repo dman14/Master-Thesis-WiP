@@ -18,6 +18,7 @@ import torch.distributed as dist
 from apex.optimizers import FusedAdam as AdamW
 from vdvae.vae import VAE
 from torch.nn.parallel.distributed import DistributedDataParallel
+from vdvae.hps import *
 
 
 def update_ema(vae, ema_vae, ema_rate):
@@ -66,16 +67,16 @@ def linear_warmup(warmup_iters):
 
 
 def setup_mpi(H):
-    H.mpi_size = mpi_size()
-    H.local_rank = local_mpi_rank()
-    H.rank = mpi_rank()
+    H.mpi_size = 1
+    H.local_rank = 0
+    H.rank = 0
     os.environ["RANK"] = str(H.rank)
     os.environ["WORLD_SIZE"] = str(H.mpi_size)
     os.environ["MASTER_PORT"] = str(H.port)
     # os.environ["NCCL_LL_THRESHOLD"] = "0"
     os.environ["MASTER_ADDR"] = MPI.COMM_WORLD.bcast(socket.gethostname(), root=0)
     torch.cuda.set_device(H.local_rank)
-    dist.init_process_group(backend='nccl', init_method=f"env://")
+    #dist.init_process_group(backend='nccl', init_method=f"env://")
 
 
 def distributed_maybe_download(path, local_rank, mpi_size):
@@ -106,12 +107,14 @@ def setup_save_dirs(H):
 
 
 def set_up_hyperparams(s=None):
-    H = Hyperparams()
+    #H = Hyperparams()
+    H = ffhq_256
     parser = argparse.ArgumentParser()
     parser = add_vae_arguments(parser)
-    parse_args_and_update_hparams(H, parser, s=s)
+    H.update(parser.parse_args(args={}).__dict__)
+    #parse_args_and_update_hparams(H, parser, s=s)
     setup_mpi(H)
-    setup_save_dirs(H)
+    #setup_save_dirs(H)
     logprint = logger(H.logdir)
     for i, k in enumerate(sorted(H)):
         logprint(type='hparam', key=k, value=H[k])
