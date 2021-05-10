@@ -15,7 +15,7 @@ class Trainer:
     """
     
 
-  def setup_hyperparams(self, wandb, batch_size = 30, test_batch_size = 10,
+  def setup_hyperparams(self, wandb, H, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
                         no_cuda = False, seed = 42, log_interval = 10):
     """
@@ -43,6 +43,7 @@ class Trainer:
     self.config.no_cuda = no_cuda
     self.config.seed = seed
     self.config.log_interval = log_interval
+    self.H = H
 
   def setup_wandb(self, wandb, project_name="UNSET"):
     """
@@ -98,24 +99,34 @@ class Trainer:
                                         shuffle, num_workers)
     self.test_dataloader = self.dataloader_main.get_dataloader()
 
-  def load_model(self, model):
-    self.model = model
+  def load_model(self, vae, ema_vae):
+    self.vae = vae
+    self.ema_vae = ema_vae
 
-  def setup_optimizer(self, optimizer = optim.SGD, optim_kwargs = None):
+  def setup_optimizer(self, logprint):
     """
     Set-up of the optimizer to be used for the training of the model.
     the arguments that need to be supplied are optimizer, and args containing
     extra arguments for the specific type of chosen optimizer
     """
-    if optim_kwargs == None:
-      optim_kwargs = {}
-    optim_kwargs["lr"] = self.config.lr
-    optim_kwargsm = optim_kwargs
-    #optim_kwargsm["momentum"] = self.config.momentum
-    #try:
-    self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
-    #except:
-    #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
+    # if optim_kwargs == None:
+    #   optim_kwargs = {}
+    # optim_kwargs["lr"] = self.config.lr
+    # optim_kwargsm = optim_kwargs
+    # #optim_kwargsm["momentum"] = self.config.momentum
+    # #try:
+    # self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
+    # #except:
+    # #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
+
+    optimizer, scheduler, cur_eval_loss, iterate, \
+                          starting_epoch = load_opt(self.H, self.vae, logprint)
+    
+    self.optimizer = optimizer
+    self.scheduler = scheduler
+    self.cur_eval_loss = cur_eval_loss
+    self.iterate = iterate
+    self.starting_epoch = starting_epoch
       
   def setup_loss(self, loss_func):
     """
@@ -162,8 +173,8 @@ class Trainer:
                               self.test_dataloader, self.loss_func)
         wandb.log(loss)
 
-  def Main_start(self, training_step, test_step, model, train_path,
-                 val_path, loss_func, wandb, batch_size = 30, 
+  def Main_start(self, training_step, test_step, vae, ema_vae, train_path,
+                 val_path, loss_func, wandb, H, logprint, batch_size = 30, 
                  test_batch_size = 10, epochs = 10, lr = 0.01,
                  momentum = 0.5, no_cuda = False, seed = 42,
                  log_interval = 10, project_name="UNSET", 
@@ -177,7 +188,7 @@ class Trainer:
     and starts the training
     """
     self.setup_wandb(wandb, project_name)
-    self.setup_hyperparams(wandb, batch_size, test_batch_size)
+    self.setup_hyperparams(wandb, H, batch_size, test_batch_size)
 
     # Set cuda or cpu based on config and availability
     self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
@@ -193,8 +204,8 @@ class Trainer:
     self.setup_dataloaders(train_path, val_path, scale, reupscale, 
                           single, size, shuffle, num_workers)
     
-    self.load_model(model)
-    self.setup_optimizer(optimizer, optim_kwargs)
+    self.load_model(vae, ema_vae)
+    self.setup_optimizer(logprint)
     self.setup_train_step(training_step)
     self.setup_test_step(test_step)
     self.setup_loss(loss_func)
@@ -208,54 +219,105 @@ class Trainer:
     self.model_save(save_path)
 
 
-def train_step(args, model, device, train_loader, optimizer, loss_func):
-    model.train()
-    total_loss = 0
-    for data, target in train_loader:
+# def train_step(args, model, device, train_loader, optimizer, loss_func):
+#     model.train()
+#     total_loss = 0
+#     for data, target in train_loader:
         
-        optimizer.zero_grad()
+#         optimizer.zero_grad()
+#         data = data.to_device(data)
+#         target = target.to_device(target)
+        
+#         output = model.forward(data,target)
+
+#         loss = loss_func(output, target)
+
+#         total_loss += loss
+        
+#         loss.backward()
+#         optimizer.step()
+        
+#         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
+#                                               params.grad_clip).item()
+        
+#         if args.skip_threshold == -1 or grad_norm < args.skip_threshold:
+#             optimizer.step()
+
+#     return {"Training Loss": total_loss}
+
+  def training_step():
+    for data, target in self.train_dataloader:
+        t0 = time.time()
+        self.vae.zero_grad()
         data = data.to_device(data)
         target = target.to_device(target)
         
-        output = model.forward(data,target)
+        stats = self.vae.forward(data,target)
+        stats['elbo'].backward()
+        grad_norm = torch.nn.utils.clip_grad_norm_(self.vae.parameters(), 
+                                                   self.H.grad_clip).item()
+        distortion_nans = torch.isnan(stats['distortion']).sum()
+        rate_nans = torch.isnan(stats['rate']).sum()
+        stats.update(dict(rate_nans=0 if rate_nans == 0 else 1, 
+                          distortion_nans=0 if distortion_nans == 0 else 1))
 
-        loss = loss_func(output, target)
+        skipped_updates = 1
+        # only update if no rank has a nan and if the grad norm is below a 
+        # specific threshold
+        if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
+           (self.H.skip_threshold == -1 or grad_norm < self.H.skip_threshold):
 
-        total_loss += loss
+            self.optimizer.step()
+            skipped_updates = 0
+            update_ema(self.vae, self.ema_vae, self.H.ema_rate)
         
-        loss.backward()
-        optimizer.step()
-        
-        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                              params.grad_clip).item()
-        
-        if args.skip_threshold == -1 or grad_norm < args.skip_threshold:
-            optimizer.step()
+        t1 = time.time()
+        stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
+                                                      grad_norm=grad_norm)
 
-    return {"Training Loss": total_loss}
+        self.scheduler.step()
+
+    return stats
 
  
 
-def test_step(args, model, device, test_loader, loss_func):
-    model.eval()
+# def test_step(args, model, device, test_loader, loss_func):
+#     model.eval()
     
-    example_images = []
-    total_loss = 0
+#     example_images = []
+#     total_loss = 0
+#     with torch.no_grad():
+    
+#         for data,target in test_loader:
+            
+#             data = data.to_device(data)
+#             target = target.to_device(target)
+            
+#             output = model(data)
+            
+#             test_loss = loss_func(output, target)
+#             total_loss += test_loss
+            
+#     example_images.append(wandb.Image(data[0],
+#                                       caption="Pred: {} Truth: {}".format(output[0].item(),
+#                                                                           target[0])))
+    
+#     return {"Examples": example_images,
+#             "Test Loss": total_loss}
+
+  def test_step():
     with torch.no_grad():
+      stats_valid = []
+      for data,target in self.test_loader:
+        data = data.to_device(data)
+        target = target.to_device(target)
+
+        stats_valid.append(self.ema_vae.forward(data,target))
+
+      vals = [a['elbo'] for a in stats_valid]
+      finites = np.array(vals)[np.isfinite(vals)]
+      stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finites),
+                   **{k: np.mean([a[k] for a in stats_valid]) \
+                   for k in stats_valid[-1]})
     
-        for data,target in test_loader:
-            
-            data = data.to_device(data)
-            target = target.to_device(target)
-            
-            output = model(data)
-            
-            test_loss = loss_func(output, target)
-            total_loss += test_loss
-            
-    example_images.append(wandb.Image(data[0],
-                                      caption="Pred: {} Truth: {}".format(output[0].item(),
-                                                                          target[0])))
-    
-    return {"Examples": example_images,
-            "Test Loss": total_loss}
+      return stats
