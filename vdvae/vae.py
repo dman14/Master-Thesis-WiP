@@ -133,18 +133,21 @@ class DecBlock(nn.Module):
             z = draw_gaussian_diag_samples(pm, pv)
         return z, x
 
-    def get_inputs(self, xs, activations):
+    def get_inputs(self, xs, activations, activations_sr = None):
         acts = activations[self.base]
         try:
             x = xs[self.base]
         except KeyError:
-            x = torch.zeros_like(acts)
+            if activations_sr:
+                x= activations_sr[1]
+            else:
+                x = torch.zeros_like(acts) 
         if acts.shape[0] != x.shape[0]:
             x = x.repeat(acts.shape[0], 1, 1, 1)
         return x, acts
 
-    def forward(self, xs, activations, get_latents=False):
-        x, acts = self.get_inputs(xs, activations)
+    def forward(self, xs, activations, get_latents=False, activations_sr = None):
+        x, acts = self.get_inputs(xs, activations, activations_sr)
         if self.mixin is not None:
             x = x + F.interpolate(xs[self.mixin][:, :x.shape[1], ...], scale_factor=self.base // self.mixin)
         z, x, kl = self.sample(x, acts)
@@ -155,12 +158,15 @@ class DecBlock(nn.Module):
             return xs, dict(z=z.detach(), kl=kl)
         return xs, dict(kl=kl)
 
-    def forward_uncond(self, xs, t=None, lvs=None):
+    def forward_uncond(self, xs, t=None, lvs=None, activations_sr=None):
         try:
             x = xs[self.base]
         except KeyError:
             ref = xs[list(xs.keys())[0]]
-            x = torch.zeros(dtype=ref.dtype, size=(ref.shape[0], self.widths[self.base], self.base, self.base), device=ref.device)
+            if activations_sr:
+                x = activations_sr[1]
+            else:
+                x = torch.zeros(dtype=ref.dtype, size=(ref.shape[0], self.widths[self.base], self.base, self.base), device=ref.device)
         if self.mixin is not None:
             x = x + F.interpolate(xs[self.mixin][:, :x.shape[1], ...], scale_factor=self.base // self.mixin)
         z, x = self.sample_uncond(x, t, lvs=lvs)
@@ -189,11 +195,11 @@ class Decoder(HModule):
         self.bias = nn.Parameter(torch.zeros(1, H.width, 1, 1))
         self.final_fn = lambda x: x * self.gain + self.bias
 
-    def forward(self, activations, get_latents=False):
+    def forward(self, activations, get_latents=False, activations_sr= None):
         stats = []
         xs = {a.shape[2]: a for a in self.bias_xs}
         for block in self.dec_blocks:
-            xs, block_stats = block(xs, activations, get_latents=get_latents)
+            xs, block_stats = block(xs, activations, get_latents=get_latents, activations_sr)
             stats.append(block_stats)
         xs[self.H.image_size] = self.final_fn(xs[self.H.image_size])
         return xs[self.H.image_size], stats
@@ -220,15 +226,24 @@ class Decoder(HModule):
         xs[self.H.image_size] = self.final_fn(xs[self.H.image_size])
         return xs[self.H.image_size]
 
+    def forward_sr(self, n, activations_sr=None):
+        xs = {}
+        for bias in self.bias_xs:
+            xs[bias.shape[2]] = bias.repeat(n, 1, 1, 1)
+        for idx, block in enumerate(self.dec_blocks):
+            xs = block.forward_uncond(xs, activations_sr)
+        xs[self.H.image_size] = self.final_fn(xs[self.H.image_size])
+        return xs[self.H.image_size]
+
 
 class VAE(HModule):
     def build(self):
         self.encoder = Encoder(self.H)
         self.decoder = Decoder(self.H)
 
-    def forward(self, x, x_target):
+    def forward(self, x, x_target, activations_sr= None):
         activations = self.encoder.forward(x)
-        px_z, stats = self.decoder.forward(activations)
+        px_z, stats = self.decoder.forward(activations, activations_sr)
         distortion_per_pixel = self.decoder.out_net.nll(px_z, x_target)
         rate_per_pixel = torch.zeros_like(distortion_per_pixel)
         ndims = np.prod(x.shape[1:])
@@ -249,4 +264,12 @@ class VAE(HModule):
 
     def forward_samples_set_latents(self, n_batch, latents, t=None):
         px_z = self.decoder.forward_manual_latents(n_batch, latents, t=t)
+        return self.decoder.out_net.sample(px_z)
+
+    def forward_sr_activations(self, x):
+        activations = self.encoder.forward(x)
+        return activations
+
+    def forward_sr_sample(self, n_batch, activations_sr)
+        px_z = self.decoder.forward_sr(n_batch, activations_sr)
         return self.decoder.out_net.sample(px_z)
