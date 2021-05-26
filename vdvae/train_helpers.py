@@ -113,7 +113,7 @@ def set_up_hyperparams(s=None):
     parser = add_vae_arguments(parser)
     H.update(parser.parse_args(args={}).__dict__)
     #parse_args_and_update_hparams(H, parser, s=s)
-    setup_mpi(H)
+    #setup_mpi(H)
     #setup_save_dirs(H)
     logprint = logger(H.logdir)
     for i, k in enumerate(sorted(H)):
