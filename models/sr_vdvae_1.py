@@ -9,7 +9,6 @@ import itertools
 from vdvae.train import *
 from vdvae.hps import *
 
-
 class SRVAE(nn.Module):
   def build(self):
     a=1	##################################################################################
@@ -58,6 +57,7 @@ class SRVAE(nn.Module):
         
   def forward_sr_sample(self, x, n_batch):
     activations_sr = self.ema_vae_sr.forward_sr_activations(x)
+    
     output = self.ema_vae.forward_sr_sample(n_batch, activations_sr)
     return output
 

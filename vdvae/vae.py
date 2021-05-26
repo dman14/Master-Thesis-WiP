@@ -161,6 +161,8 @@ class DecBlock(nn.Module):
     def forward_uncond(self, xs, t=None, lvs=None, activations_sr=None):
         try:
             x = xs[self.base]
+            if self.base == 1:
+              x = activations_sr[1]
         except KeyError:
             ref = xs[list(xs.keys())[0]]
             if activations_sr:
@@ -228,6 +230,8 @@ class Decoder(HModule):
 
     def forward_sr(self, n, activations_sr=None):
         xs = {}
+        import pdb
+        pdb.set_trace()
         for bias in self.bias_xs:
             xs[bias.shape[2]] = bias.repeat(n, 1, 1, 1)
         for idx, block in enumerate(self.dec_blocks):
