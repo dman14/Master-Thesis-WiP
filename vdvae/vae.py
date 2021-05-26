@@ -231,7 +231,7 @@ class Decoder(HModule):
         for bias in self.bias_xs:
             xs[bias.shape[2]] = bias.repeat(n, 1, 1, 1)
         for idx, block in enumerate(self.dec_blocks):
-            xs = block.forward_uncond(xs, activations_sr)
+            xs = block.forward_uncond(xs, activations_sr=activations_sr)
         xs[self.H.image_size] = self.final_fn(xs[self.H.image_size])
         return xs[self.H.image_size]
 
