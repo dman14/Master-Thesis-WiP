@@ -12,7 +12,7 @@ from vdvae.hps import *
 
 class SRVAE(HModule):
 	def build(self):
-        a=1	##################################################################################
+		a=1	##################################################################################
 
 	def build_model():
 		self.H1, self.logprint1 = set_up_hyperparams()
@@ -53,11 +53,11 @@ class SRVAE(HModule):
 		self.ema_vae_sr.load_state_dict(model_state_dict)
 
 
-    def forward(self, x, x_target):
-    	a = 1 ##################################################################################
+	def forward(self, x, x_target):
+    a = 1 ##################################################################################
         
-    def forward_sr_sample(self, x, n_batch):
-    	activations_sr = self.ema_vae_sr.forward_sr_activations(x)
-    	output = self.ema_vae.forward_sr_sample(n_batch, activations_sr)
-    	return output
+	def forward_sr_sample(self, x, n_batch):
+    activations_sr = self.ema_vae_sr.forward_sr_activations(x)
+    output = self.ema_vae.forward_sr_sample(n_batch, activations_sr)
+    return output
 
