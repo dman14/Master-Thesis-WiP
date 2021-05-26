@@ -199,7 +199,7 @@ class Decoder(HModule):
         stats = []
         xs = {a.shape[2]: a for a in self.bias_xs}
         for block in self.dec_blocks:
-            xs, block_stats = block(xs, activations, get_latents=get_latents, activations_sr)
+            xs, block_stats = block(xs, activations, get_latents=get_latents, activations_sr=activations_sr)
             stats.append(block_stats)
         xs[self.H.image_size] = self.final_fn(xs[self.H.image_size])
         return xs[self.H.image_size], stats
@@ -270,6 +270,6 @@ class VAE(HModule):
         activations = self.encoder.forward(x)
         return activations
 
-    def forward_sr_sample(self, n_batch, activations_sr)
+    def forward_sr_sample(self, n_batch, activations_sr):
         px_z = self.decoder.forward_sr(n_batch, activations_sr)
         return self.decoder.out_net.sample(px_z)
