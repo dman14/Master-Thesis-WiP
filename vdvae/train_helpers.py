@@ -172,7 +172,7 @@ def load_vaes(H, logprint):
     vae = vae.cuda(H.local_rank)
     ema_vae = ema_vae.cuda(H.local_rank)
 
-    vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank)
+    #vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank)
 
     if len(list(vae.named_parameters())) != len(list(vae.parameters())):
         raise ValueError('Some params are not named. Please name all params.')

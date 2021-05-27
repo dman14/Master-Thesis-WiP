@@ -53,6 +53,7 @@ class SRVAE(nn.Module):
 
 
   def forward(self, lr, hr):
+    lr = lr.permute(0, 2, 3, 1).contiguous()
     activations_sr = self.vae_sr.forward_sr_activations(lr)
     hr, hr_proc = self.preprocess_func(hr)
     stats = self.vae.forward(hr, hr_proc, activations_sr=activations_sr)

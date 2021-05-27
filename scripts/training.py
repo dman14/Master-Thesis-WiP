@@ -5,7 +5,7 @@ import numpy as np
 from scripts.dataloader import *
 from scripts.img_helper import *
 from vdvae.train_helpers import linear_warmup
-
+import time
 class Trainer:
   """
   We can add some comment here for later, could be really useful
@@ -238,10 +238,11 @@ class Trainer:
 #     return {"Training Loss": total_loss}
 
 def training_step(model, device, train_loader, optimizer, loss_func):
-  for data, target in train_dataloader:
-    model.zero_grad()
-    data = data.to_device(data)
-    target = target.to_device(target)
+  t0 = time.time()
+  for data, target in train_loader:
+    model.vae.zero_grad()
+    data = data.to(device)
+    target = target.to(device)
       
     stats = model.forward(data,target)
     stats['elbo'].backward()
@@ -259,7 +260,7 @@ def training_step(model, device, train_loader, optimizer, loss_func):
       optimizer.step()
       skipped_updates = 0
       update_ema(model.vae, model.ema_vae, model.H.ema_rate)
-      
+    t1 = time.time()
     stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
                                                   grad_norm=grad_norm)
 
@@ -295,8 +296,8 @@ def test_step(model, device, test_loader, loss_func):
   with torch.no_grad():
     stats_valid = []
     for data,target in test_loader:
-      data = data.to_device(data)
-      target = target.to_device(target)
+      data = data.to(device)
+      target = target.to(device)
       stats_valid.append(model.forward_ema(data,target))
     vals = [a['elbo'] for a in stats_valid]
     finites = np.array(vals)[np.isfinite(vals)]
