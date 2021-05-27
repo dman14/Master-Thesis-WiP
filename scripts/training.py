@@ -4,7 +4,7 @@ import random
 import numpy as np
 from scripts.dataloader import *
 from scripts.img_helper import *
-from vdvae.train_helpers import linear_warmup
+from vdvae.train_helpers import *
 import time
 class Trainer:
   """
