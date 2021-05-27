@@ -19,6 +19,7 @@ from apex.optimizers import FusedAdam as AdamW
 from vdvae.vae import VAE
 from torch.nn.parallel.distributed import DistributedDataParallel
 from vdvae.hps import *
+import copy
 
 
 def update_ema(vae, ema_vae, ema_rate):
@@ -107,8 +108,9 @@ def setup_save_dirs(H):
 
 
 def set_up_hyperparams(s=None):
-    #H = Hyperparams()
-    H = ffhq_256
+    H = Hyperparams()
+    #H = ffhq_256.copy()
+    H = copy.deepcopy(ffhq_256)
     parser = argparse.ArgumentParser()
     parser = add_vae_arguments(parser)
     H.update(parser.parse_args(args={}).__dict__)
@@ -117,7 +119,7 @@ def set_up_hyperparams(s=None):
       setup_mpi(H)
     except:
       pass
-    #setup_save_dirs(H)
+    setup_save_dirs(H)
     logprint = logger(H.logdir)
     for i, k in enumerate(sorted(H)):
         logprint(type='hparam', key=k, value=H[k])

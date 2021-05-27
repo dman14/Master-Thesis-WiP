@@ -5,12 +5,11 @@ class Hyperparams(dict):
     def __getattr__(self, attr):
         try:
             return self[attr]
-        except KeyError:
-            return None
+        except KeyError as e:
+            raise AttributeError from e
 
     def __setattr__(self, attr, value):
         self[attr] = value
-
 
 cifar10 = Hyperparams()
 cifar10.width = 384
