@@ -54,7 +54,7 @@ class SRVAE(nn.Module):
 
   def forward(self, lr, hr):
     activations_sr = self.vae_sr.forward_sr_activations(lr)
-    hr_proc = self.preprocess_func(hr)
+    hr, hr_proc = self.preprocess_func(hr)
     stats = self.vae.forward(hr, hr_proc, activations_sr=activations_sr)
     return stats
         
