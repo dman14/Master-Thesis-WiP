@@ -4,6 +4,7 @@ import random
 import numpy as np
 from scripts.dataloader import *
 from scripts.img_helper import *
+from vdvae.train_helpers import linear_warmup
 
 class Trainer:
   """
@@ -15,7 +16,7 @@ class Trainer:
     """
     
 
-  def setup_hyperparams(self, wandb, H, batch_size = 30, test_batch_size = 10,
+  def setup_hyperparams(self, wandb, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
                         no_cuda = False, seed = 42, log_interval = 10):
     """
@@ -43,7 +44,6 @@ class Trainer:
     self.config.no_cuda = no_cuda
     self.config.seed = seed
     self.config.log_interval = log_interval
-    self.H = H
 
   def setup_wandb(self, wandb, project_name="UNSET"):
     """
@@ -115,6 +115,7 @@ class Trainer:
     #optim_kwargsm["momentum"] = self.config.momentum
     #try:
     self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
+
     #except:
     #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
 
@@ -165,7 +166,7 @@ class Trainer:
         wandb.log(loss)
 
   def Main_start(self, training_step, test_step, model, train_path,
-                 val_path, loss_func, wandb, H, logprint, batch_size = 30, 
+                 val_path, loss_func, wandb, batch_size = 30, 
                  test_batch_size = 10, epochs = 10, lr = 0.01,
                  momentum = 0.5, no_cuda = False, seed = 42,
                  log_interval = 10, project_name="UNSET", 
@@ -179,7 +180,7 @@ class Trainer:
     and starts the training
     """
     self.setup_wandb(wandb, project_name)
-    self.setup_hyperparams(wandb, H, batch_size, test_batch_size)
+    self.setup_hyperparams(wandb, batch_size, test_batch_size)
 
     # Set cuda or cpu based on config and availability
     self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
@@ -196,7 +197,7 @@ class Trainer:
                           single, size, shuffle, num_workers)
     
     self.load_model(model)
-    self.setup_optimizer(logprint)
+    self.setup_optimizer(optimizer, optim_kwargs)
     self.setup_train_step(training_step)
     self.setup_test_step(test_step)
     self.setup_loss(loss_func)
@@ -236,10 +237,9 @@ class Trainer:
 
 #     return {"Training Loss": total_loss}
 
-def training_step(args, model, device, train_loader, optimizer, loss_func):
+def training_step(model, device, train_loader, optimizer, loss_func):
   for data, target in train_dataloader:
     model.zero_grad()
-    scheduler = loss_func
     data = data.to_device(data)
     target = target.to_device(target)
       
@@ -262,7 +262,6 @@ def training_step(args, model, device, train_loader, optimizer, loss_func):
       
     stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
                                                   grad_norm=grad_norm)
-    scheduler.step()
 
   return stats
 
@@ -292,7 +291,7 @@ def training_step(args, model, device, train_loader, optimizer, loss_func):
 #     return {"Examples": example_images,
 #             "Test Loss": total_loss}
 
-def test_step(args, model, device, test_loader, loss_func):
+def test_step(model, device, test_loader, loss_func):
   with torch.no_grad():
     stats_valid = []
     for data,target in test_loader:
