@@ -137,8 +137,8 @@ class DecBlock(nn.Module):
         acts = activations[self.base]
         try:
             x = xs[self.base]
-            if self.base == 1 and activations_sr:
-                x = activations_sr[1]
+            #if self.base == 1 and activations_sr:
+            #    x = activations_sr[1]
         except KeyError:
             if activations_sr:
                 x= activations_sr[1]
@@ -163,8 +163,8 @@ class DecBlock(nn.Module):
     def forward_uncond(self, xs, t=None, lvs=None, activations_sr=None):
         try:
             x = xs[self.base]
-            if self.base == 1 and activations_sr:
-              x = activations_sr[1]
+            #if self.base == 1 and activations_sr:
+            #  x = activations_sr[1]
         except KeyError:
             ref = xs[list(xs.keys())[0]]
             if activations_sr:
