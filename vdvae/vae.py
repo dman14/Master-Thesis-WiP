@@ -137,6 +137,8 @@ class DecBlock(nn.Module):
         acts = activations[self.base]
         try:
             x = xs[self.base]
+            if self.base == 1 and activations_sr:
+                x = activations_sr[1]
         except KeyError:
             if activations_sr:
                 x= activations_sr[1]

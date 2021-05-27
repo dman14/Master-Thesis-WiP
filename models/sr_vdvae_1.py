@@ -52,12 +52,44 @@ class SRVAE(nn.Module):
     self.ema_vae_sr.load_state_dict(model_state_dict)
 
 
-  def forward(self, x, x_target):
-    a = 1 ##################################################################################
+  def forward(self, lr, hr):
+  	activations_sr = self.vae_sr.forward_sr_activations(lr)
+  	hr_proc = self.preprocess_func(hr)
+  	stats = self.vae.forward(hr, hr_proc, activations_sr=activations_sr)
+  	return stats
         
+  def forward_ema(self,lr,hr):
+  	activations_sr = self.ema_vae_sr.forward_sr_activations(lr)
+  	hr, hr_proc = self.preprocess_func(hr)
+  	stats = self.ema_vae.forward(hr, hr_proc, activations_sr=activations_sr)
+  	return stats
+
   def forward_sr_sample(self, x, n_batch):
-    activations_sr = self.ema_vae_sr.forward_sr_activations(x)
+  	x, x_proc = self.preprocess_func(x)
+    activations_sr = self.ema_vae_sr.forward_sr_activations(x_proc)
     
     output = self.ema_vae.forward_sr_sample(n_batch, activations_sr)
     return output
 
+	def preprocess_func(self,x):
+		shift = -112.8666757481
+		scale = 1. / 69.84780273
+		shift_loss = -127.5
+		scale_loss = 1. / 127.5
+		shift = torch.tensor([shift]).cuda().view(1, 1, 1, 1)
+		scale = torch.tensor([scale]).cuda().view(1, 1, 1, 1)
+		shift_loss = torch.tensor([shift_loss]).cuda().view(1, 1, 1, 1)
+		scale_loss = torch.tensor([scale_loss]).cuda().view(1, 1, 1, 1)
+    'takes in a data example and returns the preprocessed input'
+    'as well as the input processed for the loss'
+		x[0] = x[0].permute(0, 2, 3, 1)
+
+		inp = x[0].cuda(non_blocking=True).float()
+		out = inp.clone()
+		inp.add_(shift).mul_(scale)
+
+    #Does low-bit here
+		out.mul_(1. / 8.).floor_().mul_(8.)
+
+		out.add_(shift_loss).mul_(scale_loss)
+		return inp, out
