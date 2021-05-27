@@ -99,34 +99,25 @@ class Trainer:
                                         shuffle, num_workers)
     self.test_dataloader = self.dataloader_main.get_dataloader()
 
-  def load_model(self, vae, ema_vae):
-    self.vae = vae
-    self.ema_vae = ema_vae
+  def load_model(self, model):
+    self.model = model
 
-  def setup_optimizer(self, logprint):
+  def setup_optimizer(self, optimizer, optim_kwargs):
     """
     Set-up of the optimizer to be used for the training of the model.
     the arguments that need to be supplied are optimizer, and args containing
     extra arguments for the specific type of chosen optimizer
     """
-    # if optim_kwargs == None:
-    #   optim_kwargs = {}
-    # optim_kwargs["lr"] = self.config.lr
-    # optim_kwargsm = optim_kwargs
-    # #optim_kwargsm["momentum"] = self.config.momentum
-    # #try:
-    # self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
-    # #except:
-    # #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
+    if optim_kwargs == None:
+      optim_kwargs = {}
+    optim_kwargs["lr"] = self.config.lr
+    optim_kwargsm = optim_kwargs
+    #optim_kwargsm["momentum"] = self.config.momentum
+    #try:
+    self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
+    #except:
+    #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
 
-    optimizer, scheduler, cur_eval_loss, iterate, \
-                          starting_epoch = load_opt(self.H, self.vae, logprint)
-    
-    self.optimizer = optimizer
-    self.scheduler = scheduler
-    self.cur_eval_loss = cur_eval_loss
-    self.iterate = iterate
-    self.starting_epoch = starting_epoch
       
   def setup_loss(self, loss_func):
     """
@@ -173,7 +164,7 @@ class Trainer:
                               self.test_dataloader, self.loss_func)
         wandb.log(loss)
 
-  def Main_start(self, training_step, test_step, vae, ema_vae, train_path,
+  def Main_start(self, training_step, test_step, model, train_path,
                  val_path, loss_func, wandb, H, logprint, batch_size = 30, 
                  test_batch_size = 10, epochs = 10, lr = 0.01,
                  momentum = 0.5, no_cuda = False, seed = 42,
@@ -204,7 +195,7 @@ class Trainer:
     self.setup_dataloaders(train_path, val_path, scale, reupscale, 
                           single, size, shuffle, num_workers)
     
-    self.load_model(vae, ema_vae)
+    self.load_model(model)
     self.setup_optimizer(logprint)
     self.setup_train_step(training_step)
     self.setup_test_step(test_step)
@@ -245,39 +236,35 @@ class Trainer:
 
 #     return {"Training Loss": total_loss}
 
-  def training_step():
-    for data, target in self.train_dataloader:
-        t0 = time.time()
-        self.vae.zero_grad()
-        data = data.to_device(data)
-        target = target.to_device(target)
-        
-        stats = self.vae.forward(data,target)
-        stats['elbo'].backward()
-        grad_norm = torch.nn.utils.clip_grad_norm_(self.vae.parameters(), 
-                                                   self.H.grad_clip).item()
-        distortion_nans = torch.isnan(stats['distortion']).sum()
-        rate_nans = torch.isnan(stats['rate']).sum()
-        stats.update(dict(rate_nans=0 if rate_nans == 0 else 1, 
-                          distortion_nans=0 if distortion_nans == 0 else 1))
+def training_step(args, model, device, train_loader, optimizer, loss_func):
+  for data, target in train_dataloader:
+    model.zero_grad()
+    scheduler = loss_func
+    data = data.to_device(data)
+    target = target.to_device(target)
+      
+    stats = model.forward(data,target)
+    stats['elbo'].backward()
+    grad_norm = torch.nn.utils.clip_grad_norm_(model.vae.parameters(), 
+                                                 model.H.grad_clip).item()
+    distortion_nans = torch.isnan(stats['distortion']).sum()
+    rate_nans = torch.isnan(stats['rate']).sum()
+    stats.update(dict(rate_nans=0 if rate_nans == 0 else 1, 
+                      distortion_nans=0 if distortion_nans == 0 else 1))
+    skipped_updates = 1
+    # only update if no rank has a nan and if the grad norm is below a 
+    # specific threshold
+    if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
+        (model.H.skip_threshold == -1 or grad_norm < model.H.skip_threshold):
+      optimizer.step()
+      skipped_updates = 0
+      update_ema(model.vae, model.ema_vae, model.H.ema_rate)
+      
+    stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
+                                                  grad_norm=grad_norm)
+    scheduler.step()
 
-        skipped_updates = 1
-        # only update if no rank has a nan and if the grad norm is below a 
-        # specific threshold
-        if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
-           (self.H.skip_threshold == -1 or grad_norm < self.H.skip_threshold):
-
-            self.optimizer.step()
-            skipped_updates = 0
-            update_ema(self.vae, self.ema_vae, self.H.ema_rate)
-        
-        t1 = time.time()
-        stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
-                                                      grad_norm=grad_norm)
-
-        self.scheduler.step()
-
-    return stats
+  return stats
 
  
 
@@ -305,19 +292,17 @@ class Trainer:
 #     return {"Examples": example_images,
 #             "Test Loss": total_loss}
 
-  def test_step():
-    with torch.no_grad():
-      stats_valid = []
-      for data,target in self.test_loader:
-        data = data.to_device(data)
-        target = target.to_device(target)
-
-        stats_valid.append(self.ema_vae.forward(data,target))
-
-      vals = [a['elbo'] for a in stats_valid]
-      finites = np.array(vals)[np.isfinite(vals)]
-      stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finites),
-                   **{k: np.mean([a[k] for a in stats_valid]) \
-                   for k in stats_valid[-1]})
-    
-      return stats
+def test_step(args, model, device, test_loader, loss_func):
+  with torch.no_grad():
+    stats_valid = []
+    for data,target in test_loader:
+      data = data.to_device(data)
+      target = target.to_device(target)
+      stats_valid.append(model.forward_ema(data,target))
+    vals = [a['elbo'] for a in stats_valid]
+    finites = np.array(vals)[np.isfinite(vals)]
+    stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finites),
+                 **{k: np.mean([a[k] for a in stats_valid]) \
+                 for k in stats_valid[-1]})
+  
+  return stats
