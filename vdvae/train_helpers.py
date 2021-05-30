@@ -172,6 +172,12 @@ def load_vaes(H, logprint):
     vae = vae.cuda(H.local_rank)
     ema_vae = ema_vae.cuda(H.local_rank)
 
+    if H.image_size == 64:
+      vae.decoder.requires_grad_(False)
+    if H.image_size == 256:
+      vae.encoder.requires_grad_(False)
+
+
     vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank)
 
     if len(list(vae.named_parameters())) != len(list(vae.parameters())):

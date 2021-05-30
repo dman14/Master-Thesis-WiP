@@ -158,7 +158,7 @@ class Trainer:
 
         loss = self.train_step(self.model, self.device,
                                self.train_dataloader, self.optimizer,
-                               self.loss_func)
+                               self.loss_func,wandb)
         wandb.log(loss)
 
         loss = self.test_step(self.model, self.device,
@@ -237,8 +237,9 @@ class Trainer:
 
 #     return {"Training Loss": total_loss}
 
-def training_step(model, device, train_loader, optimizer, loss_func):
+def training_step(model, device, train_loader, optimizer, loss_func,wandb):
   t0 = time.time()
+  counter = 0
   for data, target in train_loader:
     model.vae.zero_grad()
     data = data.to(device)
@@ -255,14 +256,18 @@ def training_step(model, device, train_loader, optimizer, loss_func):
     skipped_updates = 1
     # only update if no rank has a nan and if the grad norm is below a 
     # specific threshold
-    if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
-        (model.H1.skip_threshold == -1 or grad_norm < model.H1.skip_threshold):
-      optimizer.step()
-      skipped_updates = 0
-      update_ema(model.vae, model.ema_vae, model.H1.ema_rate)
+    #if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
+    #    (model.H1.skip_threshold == -1 or grad_norm < model.H1.skip_threshold):
+    optimizer.step()
+    skipped_updates = 0
+    update_ema(model.vae, model.ema_vae, model.H1.ema_rate)
     t1 = time.time()
     stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
                                                   grad_norm=grad_norm)
+    counter = counter + 1
+    if counter % 100 == 0:
+      wandb.log(stats)
+      print("-Batch nr. ",counter,", ELBO:",stats['elbo'],"Distrortion:",stats['distortion'])
 
   return stats
 
@@ -304,5 +309,5 @@ def test_step(model, device, test_loader, loss_func):
     stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finites),
                  **{k: np.mean([a[k] for a in stats_valid]) \
                  for k in stats_valid[-1]})
-  
+
   return stats
