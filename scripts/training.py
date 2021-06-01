@@ -117,7 +117,7 @@ class Trainer:
     wd = model.H1.wd
     lr = model.H1.lr
     betas = (model.H1.adam_beta1, model.H1.adam_beta2)
-    warmup_iters = model.H1.warmup.iters
+    warmup_iters = model.H1.warmup_iters
 
     self.optimizer = optimizer(self.model.parameters(), weight_decay = wd, 
                                                     lr = lr, betas = betas)
@@ -212,7 +212,7 @@ class Trainer:
                           single, size, shuffle, num_workers)
     
     self.load_model(model)
-    self.setup_optimizer(optimizer, optim_kwargs)
+    self.setup_optimizer(optimizer, optim_kwargs, model)
     self.setup_train_step(training_step)
     self.setup_test_step(test_step)
     self.setup_loss(loss_func)

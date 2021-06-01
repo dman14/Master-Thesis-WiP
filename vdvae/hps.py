@@ -130,7 +130,7 @@ def add_vae_arguments(parser):
     parser.add_argument('--scale_encblock', action="store_true")
 
     parser.add_argument('--test_eval', action="store_true")
-    parser.add_argument('--warmup_iters', type=float, default=0)
+    parser.add_argument('--warmup_iters', type=float, default=100)
 
     parser.add_argument('--num_mixtures', type=int, default=10)
     parser.add_argument('--grad_clip', type=float, default=130.)
