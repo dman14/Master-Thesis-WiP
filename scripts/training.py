@@ -180,6 +180,9 @@ class Trainer:
                               self.test_dataloader, self.loss_func)
         wandb.log(loss)
 
+        if epoch % 5 ==0 :
+          self.model_save(wandb,save_path)
+
   def Main_start(self, training_step, test_step, model, train_path,
                  val_path, loss_func, wandb, batch_size = 30, 
                  test_batch_size = 10, epochs = 10, lr = 0.01,
