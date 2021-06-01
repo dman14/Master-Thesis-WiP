@@ -102,7 +102,7 @@ class Trainer:
   def load_model(self, model):
     self.model = model
 
-  def setup_optimizer(self, optimizer, optim_kwargs):
+  def setup_optimizer(self, optimizer, optim_kwargs, model):
     """
     Set-up of the optimizer to be used for the training of the model.
     the arguments that need to be supplied are optimizer, and args containing
@@ -114,7 +114,21 @@ class Trainer:
     optim_kwargsm = optim_kwargs
     #optim_kwargsm["momentum"] = self.config.momentum
     #try:
-    self.optimizer = optimizer(self.model.parameters(), **optim_kwargsm)
+    wd = model.H1.wd
+    lr = model.H1.lr
+    betas = (model.H1.adam_beta1, model.H1.adam_beta2)
+    warmup_iters = model.H1.warmup.iters
+
+    self.optimizer = optimizer(self.model.parameters(), weight_decay = wd, 
+                                                    lr = lr, betas = betas)
+
+    self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, 
+                                    lr_lambda=self.linear_warmup(warmup_iters))
+
+  def linear_warmup(self, warmup_iters):
+    def f(iteration):
+        return 1.0 if iteration > warmup_iters else iteration / warmup_iters
+    return f
 
     #except:
     #  self.optimizer = optimizer(self.model.parameters(), **optim_kwargs)
@@ -143,6 +157,7 @@ class Trainer:
 
   def resume_training(self, resume_path):
     self.model.load_state_dict(torch.load(resume_path))
+    
   def start_training(self, wandb):
     """
     Main function for starting the training proccess after all the other
@@ -158,7 +173,7 @@ class Trainer:
 
         loss = self.train_step(self.model, self.device,
                                self.train_dataloader, self.optimizer,
-                               self.loss_func,wandb)
+                               self.loss_func,wandb, self.scheduler)
         wandb.log(loss)
 
         loss = self.test_step(self.model, self.device,
@@ -237,7 +252,8 @@ class Trainer:
 
 #     return {"Training Loss": total_loss}
 
-def training_step(model, device, train_loader, optimizer, loss_func,wandb):
+def training_step(model, device, train_loader, optimizer, loss_func,wandb, 
+                                                                    scheduler):
   t0 = time.time()
   counter = 0
   for data, target in train_loader:
@@ -269,6 +285,7 @@ def training_step(model, device, train_loader, optimizer, loss_func,wandb):
       wandb.log(stats)
       print("-Batch nr. ",counter,", ELBO:",stats['elbo'],"Distrortion:",stats['distortion'])
 
+    scheduler.step()
   return stats
 
  
