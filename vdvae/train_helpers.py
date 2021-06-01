@@ -176,7 +176,7 @@ def load_vaes(H, logprint):
       vae.decoder.requires_grad_(False)
     if H.image_size == 256:
       vae.encoder.requires_grad_(False)
-
+    
 
     vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank)
 

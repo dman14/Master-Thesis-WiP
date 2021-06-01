@@ -57,7 +57,7 @@ class Trainer:
     wandb.watch_called = False # Re-run the model without restarting
                                #the runtime, unnecessary after the next release
 
-  def model_save(self, save_path = "/"):
+  def model_save(self, save_path = "/",wandb):
     """
     Saves the model in the current state to the specified path, and with 
     the specified name
@@ -223,7 +223,7 @@ class Trainer:
     self.start_training(wandb)
 
     #Save the model after the training is finished
-    self.model_save(save_path)
+    self.model_save(save_path,wandb)
 
 
 # def train_step(args, model, device, train_loader, optimizer, loss_func):
@@ -317,14 +317,22 @@ def training_step(model, device, train_loader, optimizer, loss_func,wandb,
 def test_step(model, device, test_loader, loss_func):
   with torch.no_grad():
     stats_valid = []
+    vals = []
     for data,target in test_loader:
       data = data.to(device)
       target = target.to(device)
-      stats_valid.append(model.forward_ema(data,target))
+      stats = model.forward_ema(data,target)
+      keys = sorted(stats.keys())
+      aux = torch.stack([torch.as_tensor(stats[k]).detach().cpu().float() for k in keys])
+      stats_valid.append({k: aux[i].item() for (i,k) in enumerate(keys)})
     vals = [a['elbo'] for a in stats_valid]
-    finites = np.array(vals)[np.isfinite(vals)]
-    stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finites),
+    #vals = vals.detach().cpu().numpy()
+    finite = np.array(vals, dtype=float)[np.isfinite(vals)]
+    stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finite),
                  **{k: np.mean([a[k] for a in stats_valid]) \
                  for k in stats_valid[-1]})
-
+  stats[distortion] = stats.pop(distortion_eval)
+  stats[elbo] = stats.pop(elbo_eval)
+  stats[rate] = stats.pop(rate_eval)
+  stats[filtered_elbo] = stats.pop(filtered_elbo_eval)
   return stats
