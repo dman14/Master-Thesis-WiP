@@ -174,9 +174,13 @@ def load_vaes(H, logprint):
 
     if H.image_size == 64:
       vae.decoder.requires_grad_(False)
+      vae.encoder.requires_grad_(False)
+      vae.encoder.enc_blocks[-5:].requires_grad_(True)
     if H.image_size == 256:
       vae.encoder.requires_grad_(False)
-    
+      vae.decoder.requires_grad_(False)
+      vae.decoder.dec_blocks[-7:].requires_grad_(True)
+
 
     vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank)
 

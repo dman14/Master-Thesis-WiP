@@ -57,7 +57,7 @@ class Trainer:
     wandb.watch_called = False # Re-run the model without restarting
                                #the runtime, unnecessary after the next release
 
-  def model_save(self, save_path = "/",wandb):
+  def model_save(self,wandb, save_path = "/"):
     """
     Saves the model in the current state to the specified path, and with 
     the specified name
@@ -223,7 +223,7 @@ class Trainer:
     self.start_training(wandb)
 
     #Save the model after the training is finished
-    self.model_save(save_path,wandb)
+    self.model_save(wandb,save_path)
 
 
 # def train_step(args, model, device, train_loader, optimizer, loss_func):
@@ -331,8 +331,8 @@ def test_step(model, device, test_loader, loss_func):
     stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finite),
                  **{k: np.mean([a[k] for a in stats_valid]) \
                  for k in stats_valid[-1]})
-  stats[distortion] = stats.pop(distortion_eval)
-  stats[elbo] = stats.pop(elbo_eval)
-  stats[rate] = stats.pop(rate_eval)
-  stats[filtered_elbo] = stats.pop(filtered_elbo_eval)
+  stats["distortion_eval"] = stats.pop("distortion")
+  stats["elbo_eval"] = stats.pop("elbo")
+  stats["rate_eval"] = stats.pop("rate")
+  stats["filtered_elbo_eval"] = stats.pop("filtered_elbo")
   return stats
