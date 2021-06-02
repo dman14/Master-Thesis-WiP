@@ -16,7 +16,7 @@ class SRVAE(nn.Module):
   def build_model(self,image_size, net_type = None):
     self.H1, self.logprint1 = set_up_hyperparams()
     self.H1.image_size = image_size
-    if net_type not None:
+    if net_type is not None:
       self.H1.update(net_type)
     self.H1.image_channels = 3
     self.vae, self.ema_vae = load_vaes(self.H1, self.logprint1)
@@ -26,12 +26,12 @@ class SRVAE(nn.Module):
     self.H2.image_size = image_size
     self.H2.image_channels = 3
     n_batch = self.H2.n_batch
-    if net_type not None:
+    if net_type is not None:
       self.H2.update(net_type)
     self.H2.n_batch = n_batch
     self.vae_sr, self.ema_vae_sr = load_vaes(self.H2, self.logprint2)
 
-  def load_saved_models(self, model_path, model_path_ema, model_path_sr, model_path_ema_sr):
+  def load_saved_models(self, model_path, model_path_ema):
 		
     model_state_dict_save = {k:v for k,v in torch.load(model_path, map_location="cuda").items()}
     model_state_dict = self.vae.state_dict()
@@ -43,6 +43,7 @@ class SRVAE(nn.Module):
     model_state_dict.update(model_state_dict_save)
     self.ema_vae.load_state_dict(model_state_dict)
 
+  def load_saved_models_sr(self, model_path_sr, model_path_ema_sr):
 
     model_state_dict_save = {k:v for k,v in torch.load(model_path_sr, map_location="cuda").items()}
     model_state_dict = self.vae_sr.state_dict()

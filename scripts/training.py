@@ -181,7 +181,7 @@ class Trainer:
         wandb.log(loss)
 
         if epoch % 5 ==0 :
-          self.model_save(wandb,save_path)
+          self.model_save(wandb,self.save_path)
 
   def Main_start(self, training_step, test_step, model, train_path,
                  val_path, loss_func, wandb, batch_size = 30, 
@@ -222,6 +222,7 @@ class Trainer:
     if resume == True:
       self.resume_training(resume_path)
 
+    self.save_path = save_path
     #starting the training with all the parameters and settings provided
     self.start_training(wandb)
 
