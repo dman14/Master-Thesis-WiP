@@ -174,12 +174,15 @@ class Trainer:
         #loss = self.train_step(self.model, self.device,
         #                       self.train_dataloader, self.optimizer,
         #                       self.loss_func,wandb, self.scheduler)
+        #reconstruction = stats.pop("reconstruction")
         #wandb.log(loss)
 
         loss = self.test_step(self.model, self.device,
                               self.test_dataloader, self.loss_func)
+
+        reconstruction = stats.pop("reconstruction")
         wandb.log(loss)
-        wandb.log({"reconstruction":wandb.Image(loss['reconstruction'][0])})
+        wandb.log({"reconstruction":wandb.Image(reconstruction[0])})
 
         if epoch % 5 ==0 :
           self.model_save(wandb,self.save_path)
