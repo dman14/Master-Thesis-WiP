@@ -40,6 +40,12 @@ i32.epochs_per_eval = 1
 i32.epochs_per_eval_save = 1
 HPARAMS_REGISTRY['imagenet32'] = i32
 
+NEW16 = Hyperparams()
+NEW16.update(i32)
+NEW16.dec_blocks = "1x2,4m1,4x4,8m4,8x9,16m8,16x19"
+NEW16.enc_blocks = "16x9,16d2,8x8,8d2,4x6,4d4,1x6"
+HPARAMS_REGISTRY['NewNetwork16'] = NEW16
+
 i64 = Hyperparams()
 i64.update(i32)
 i64.n_batch = 4
