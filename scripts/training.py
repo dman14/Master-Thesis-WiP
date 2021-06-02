@@ -171,11 +171,11 @@ class Trainer:
 
     for epoch in range(1, self.config.epochs + 1):
 
-        #loss = self.train_step(self.model, self.device,
-        #                       self.train_dataloader, self.optimizer,
-        #                       self.loss_func,wandb, self.scheduler)
-        #reconstruction = loss.pop("reconstruction")
-        #wandb.log(loss)
+        loss = self.train_step(self.model, self.device,
+                               self.train_dataloader, self.optimizer,
+                               self.loss_func,wandb, self.scheduler)
+        reconstruction = loss.pop("reconstruction")
+        wandb.log(loss)
 
         loss = self.test_step(self.model, self.device,
                               self.test_dataloader, self.loss_func)
