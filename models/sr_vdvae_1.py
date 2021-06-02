@@ -13,18 +13,21 @@ class SRVAE(nn.Module):
   def build(self):
     a=1	##################################################################################
 
-  def build_model(self):
+  def build_model(self,image_size, net_type = None):
     self.H1, self.logprint1 = set_up_hyperparams()
-    self.H1.image_size = 256
+    self.H1.image_size = image_size
+    if net_type not None:
+      self.H1.update(net_type)
     self.H1.image_channels = 3
     self.vae, self.ema_vae = load_vaes(self.H1, self.logprint1)
 
-  def build_parcial_model(self):
+  def build_parcial_model(self, image_size, net_type = None):
     self.H2, self.logprint2 = set_up_hyperparams()
-    self.H2.image_size = 64
+    self.H2.image_size = image_size
     self.H2.image_channels = 3
     n_batch = self.H2.n_batch
-    self.H2.update(i64)
+    if net_type not None:
+      self.H2.update(net_type)
     self.H2.n_batch = n_batch
     self.vae_sr, self.ema_vae_sr = load_vaes(self.H2, self.logprint2)
 
