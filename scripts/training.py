@@ -171,15 +171,15 @@ class Trainer:
 
     for epoch in range(1, self.config.epochs + 1):
 
-        loss = self.train_step(self.model, self.device,
-                               self.train_dataloader, self.optimizer,
-                               self.loss_func,wandb, self.scheduler)
-        wandb.log(loss)
+        #loss = self.train_step(self.model, self.device,
+        #                       self.train_dataloader, self.optimizer,
+        #                       self.loss_func,wandb, self.scheduler)
+        #wandb.log(loss)
 
         loss = self.test_step(self.model, self.device,
                               self.test_dataloader, self.loss_func)
         wandb.log(loss)
-        wandb.log("reconstruction":wandb.Image(loss['reconstruction'][0]))
+        wandb.log({"reconstruction":wandb.Image(loss['reconstruction'][0])})
 
         if epoch % 5 ==0 :
           self.model_save(wandb,self.save_path)
@@ -327,6 +327,7 @@ def test_step(model, device, test_loader, loss_func):
       data = data.to(device)
       target = target.to(device)
       stats = model.forward_ema(data,target)
+      reconstruction = stats.pop("reconstruction")
       keys = sorted(stats.keys())
       aux = torch.stack([torch.as_tensor(stats[k]).detach().cpu().float() for k in keys])
       stats_valid.append({k: aux[i].item() for (i,k) in enumerate(keys)})
@@ -340,4 +341,5 @@ def test_step(model, device, test_loader, loss_func):
   stats["elbo_eval"] = stats.pop("elbo")
   stats["rate_eval"] = stats.pop("rate")
   stats["filtered_elbo_eval"] = stats.pop("filtered_elbo")
+  stats["reconstruction"] = reconstruction
   return stats
