@@ -198,7 +198,7 @@ class Trainer:
     and starts the training
     """
     self.setup_wandb(wandb, project_name)
-    self.setup_hyperparams(wandb, batch_size, test_batch_size)
+    self.setup_hyperparams(wandb, batch_size, test_batch_size, epochs)
 
     # Set cuda or cpu based on config and availability
     self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
