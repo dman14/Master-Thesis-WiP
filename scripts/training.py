@@ -181,8 +181,10 @@ class Trainer:
                               self.test_dataloader, self.loss_func)
 
         reconstruction = loss.pop("reconstruction")
+        sample = loss.pop("sample")
         wandb.log(loss)
         wandb.log({"reconstruction":wandb.Image(reconstruction[0])})
+        wandb.log({"sample":wandb.Image(sample)})
 
         if epoch % 5 ==0 :
           self.model_save(wandb,self.save_path)
@@ -280,11 +282,11 @@ def training_step(model, device, train_loader, optimizer, loss_func,wandb,
     skipped_updates = 1
     # only update if no rank has a nan and if the grad norm is below a 
     # specific threshold
-    #if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
-    #    (model.H1.skip_threshold == -1 or grad_norm < model.H1.skip_threshold):
-    optimizer.step()
-    skipped_updates = 0
-    update_ema(model.vae, model.ema_vae, model.H1.ema_rate)
+    if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
+        (model.H1.skip_threshold == -1 or grad_norm < model.H1.skip_threshold):
+        optimizer.step()
+        skipped_updates = 0
+        update_ema(model.vae, model.ema_vae, model.H1.ema_rate)
     t1 = time.time()
     stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
                                                   grad_norm=grad_norm)
@@ -345,4 +347,6 @@ def test_step(model, device, test_loader, loss_func):
   stats["rate_eval"] = stats.pop("rate")
   stats["filtered_elbo_eval"] = stats.pop("filtered_elbo")
   stats["reconstruction"] = reconstruction
+  output = model.forward_sr_sample(data, 1)
+  stats["sample"] = output[0]
   return stats

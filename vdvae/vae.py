@@ -134,7 +134,7 @@ class DecBlock(nn.Module):
         return z, x
 
     def get_inputs(self, xs, activations, activations_sr = None):
-        acts = activations[self.base]
+        acts = activations[self.base]# + activations_sr[self.base]
         try:
             x = xs[self.base]
             #if self.base == 1 and activations_sr:
@@ -162,7 +162,7 @@ class DecBlock(nn.Module):
 
     def forward_uncond(self, xs, t=None, lvs=None, activations_sr=None):
         try:
-            x = xs[self.base]
+            x = xs[self.base]# + activations_sr[self.base]
             #if self.base == 1 and activations_sr:
             #  x = activations_sr[1]
         except KeyError:
@@ -247,7 +247,7 @@ class VAE(HModule):
 
     def forward(self, x, x_target, activations_sr= None):
         activations = self.encoder.forward(x)
-        px_z, stats = self.decoder.forward(activations, activations_sr)
+        px_z, stats = self.decoder.forward(activations, activations_sr=activations_sr)
         distortion_per_pixel = self.decoder.out_net.nll(px_z, x_target)
         rate_per_pixel = torch.zeros_like(distortion_per_pixel)
         ndims = np.prod(x.shape[1:])

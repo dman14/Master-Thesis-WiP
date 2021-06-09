@@ -90,6 +90,8 @@ class SRVAE(nn.Module):
     scale_loss = torch.tensor([scale_loss]).cuda().view(1, 1, 1, 1)
     'takes in a data example and returns the preprocessed input'
     'as well as the input processed for the loss'
+    x = x * 255
+    x = x.type(torch.ByteTensor)
     x = x.permute(0, 2, 3, 1)
 
     inp = x.cuda(non_blocking=True).float()
@@ -97,7 +99,7 @@ class SRVAE(nn.Module):
     inp.add_(shift).mul_(scale)
 
     #Does low-bit here
-    out.mul_(1. / 8.).floor_().mul_(8.)
+    #out.mul_(1. / 8.).floor_().mul_(8.)
 
     out.add_(shift_loss).mul_(scale_loss)
     return inp, out
