@@ -183,6 +183,7 @@ def load_vaes(H, logprint):
 
     if H.image_size == 16:
       vae.decoder.requires_grad_(False)
+      #vae.encoder.requires_grad_(True)
       #vae.encoder.requires_grad_(False)
       #vae.encoder.enc_blocks[-5:].requires_grad_(True)
     if H.image_size == 64:
@@ -190,9 +191,10 @@ def load_vaes(H, logprint):
       #vae.encoder.enc_blocks[-5:].requires_grad_(True)
       vae.decoder.requires_grad_(False)
       #vae.decoder.dec_blocks[-12:].requires_grad_(True)
-      vae.decoder.dec_blocks[1].requires_grad_(True)
+      vae.decoder.dec_blocks[:4].requires_grad_(True)
+      vae.decoder.dec_blocks[-12:].requires_grad_(True)
 
-    vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank)
+    vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank, find_unused_parameters=True)
 
     if len(list(vae.named_parameters())) != len(list(vae.parameters())):
         raise ValueError('Some params are not named. Please name all params.')
