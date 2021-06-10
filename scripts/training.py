@@ -39,7 +39,7 @@ class Trainer:
     self.config.batch_size = batch_size
     self.config.test_batch_size = test_batch_size
     self.config.epochs = epochs
-    self.config.lr = lr
+    self.config.lr = lr / 100
     self.config.momentum = momentum
     self.config.no_cuda = no_cuda
     self.config.seed = seed
@@ -273,7 +273,7 @@ def training_step(model, device, train_loader, optimizer, loss_func,wandb,
       
     stats = model.forward(data,target)
     stats['elbo'].backward()
-    grad_norm = torch.nn.utils.clip_grad_norm_(model.vae.parameters(), 
+    grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 
                                                  model.H1.grad_clip).item()
     distortion_nans = torch.isnan(stats['distortion']).sum()
     rate_nans = torch.isnan(stats['rate']).sum()
@@ -282,11 +282,14 @@ def training_step(model, device, train_loader, optimizer, loss_func,wandb,
     skipped_updates = 1
     # only update if no rank has a nan and if the grad norm is below a 
     # specific threshold
+    print("grad_norm:", grad_norm)
     if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
         (model.H1.skip_threshold == -1 or grad_norm < model.H1.skip_threshold):
         optimizer.step()
+        #print("STEPPED")
         skipped_updates = 0
         update_ema(model.vae, model.ema_vae, model.H1.ema_rate)
+        update_ema(model.vae_sr, model.ema_var_sr, model.H2.ema_rate)
     t1 = time.time()
     stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
                                                   grad_norm=grad_norm)

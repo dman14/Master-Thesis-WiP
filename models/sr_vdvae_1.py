@@ -80,8 +80,8 @@ class SRVAE(nn.Module):
     return output
 
   def preprocess_func(self,x):
-    shift = -112.8666757481
-    scale = 1. / 69.84780273
+    shift = -115.92961967
+    scale = 1. / 69.37404
     shift_loss = -127.5
     scale_loss = 1. / 127.5
     shift = torch.tensor([shift]).cuda().view(1, 1, 1, 1)
