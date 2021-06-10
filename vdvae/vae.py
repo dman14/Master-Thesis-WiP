@@ -137,13 +137,11 @@ class DecBlock(nn.Module):
         acts = activations[self.base]# + activations_sr[self.base]
         try:
             x = xs[self.base]
-            #if self.base == 1 and activations_sr:
-            #    x = activations_sr[1]
-        except KeyError:
-            if activations_sr:
+            if self.base == 1 and activations_sr is not None:
                 x= activations_sr[1]
-            else:
-                x = torch.zeros_like(acts) 
+
+        except KeyError:
+            x = torch.zeros_like(acts) 
         if acts.shape[0] != x.shape[0]:
             x = x.repeat(acts.shape[0], 1, 1, 1)
         return x, acts
@@ -163,14 +161,12 @@ class DecBlock(nn.Module):
     def forward_uncond(self, xs, t=None, lvs=None, activations_sr=None):
         try:
             x = xs[self.base]# + activations_sr[self.base]
-            #if self.base == 1 and activations_sr:
-            #  x = activations_sr[1]
+            if self.base == 1 and activations_sr is not None:
+                x = activations_sr[1]
+
         except KeyError:
             ref = xs[list(xs.keys())[0]]
-            if activations_sr:
-                x = activations_sr[1]
-            else:
-                x = torch.zeros(dtype=ref.dtype, size=(ref.shape[0], self.widths[self.base], self.base, self.base), device=ref.device)
+            x = torch.zeros(dtype=ref.dtype, size=(ref.shape[0], self.widths[self.base], self.base, self.base), device=ref.device)
         if self.mixin is not None:
             x = x + F.interpolate(xs[self.mixin][:, :x.shape[1], ...], scale_factor=self.base // self.mixin)
         z, x = self.sample_uncond(x, t, lvs=lvs)
