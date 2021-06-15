@@ -74,7 +74,7 @@ class SRVAE(nn.Module):
 
   def forward_sr_sample(self, x, n_batch):
     x, x_proc = self.preprocess_func(x)
-    activations_sr = self.ema_vae_sr.forward_sr_activations(x_proc)
+    activations_sr = self.ema_vae_sr.forward_sr_activations(x)
     
     output = self.ema_vae.forward_sr_sample(n_batch, activations_sr)
     return output
