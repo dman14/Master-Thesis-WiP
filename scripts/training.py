@@ -12,9 +12,8 @@ class Trainer:
   """
   def __init__(self):
     """
-
     """
-    
+    self.epoch_start = 1
 
   def setup_hyperparams(self, wandb, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
@@ -169,13 +168,14 @@ class Trainer:
     wandb.watch(self.model, log="all")
     self.model = self.model.to(self.device)
 
-    for epoch in range(1, self.config.epochs + 1):
+    for epoch in range(self.epoch_start, self.config.epochs + 1):
 
         loss = self.train_step(self.model, self.device,
                                self.train_dataloader, self.optimizer,
                                self.loss_func,wandb, self.scheduler)
         reconstruction = loss.pop("reconstruction")
         wandb.log(loss)
+        wandb.log({"epoch":epoch})
 
         loss = self.test_step(self.model, self.device,
                               self.test_dataloader, self.loss_func)
