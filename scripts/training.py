@@ -182,9 +182,10 @@ class Trainer:
 
         reconstruction = loss.pop("reconstruction")
         sample = loss.pop("sample")
-        wandb.log(loss)
-        wandb.log({"reconstruction":wandb.Image(reconstruction[0])})
-        wandb.log({"sample":wandb.Image(sample)})
+        if epoch % 1 ==0 :
+          wandb.log(loss)
+          wandb.log({"reconstruction":wandb.Image(reconstruction[0])})
+          wandb.log({"sample":wandb.Image(sample)})
 
         if epoch % 5 ==0 :
           self.model_save(wandb,self.save_path)

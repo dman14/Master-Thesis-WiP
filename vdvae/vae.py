@@ -134,7 +134,10 @@ class DecBlock(nn.Module):
         return z, x
 
     def get_inputs(self, xs, activations, activations_sr = None):
-        acts = activations[self.base]# + activations_sr[self.base]
+        if self.base < 32:
+            acts = activations[self.base] + activations_sr[self.base]
+        else:
+             acts = activations[self.base]
         try:
             x = xs[self.base]
             if self.base == 1 and activations_sr is not None:
