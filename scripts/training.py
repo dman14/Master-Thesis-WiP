@@ -169,7 +169,7 @@ class Trainer:
     # Starting the watch in order to log all layer dimensions, gradients and
     # model parameters to the dashboard
     # Using log="all" log histograms of parameter values in addition to gradients
-    wandb.watch(self.model, log="all")
+    wandb.watch(self.model, log=None)
     self.model = self.model.to(self.device)
 
     for epoch in range(self.epoch_start, self.config.epochs + 1):
