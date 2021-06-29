@@ -154,24 +154,24 @@ class SRVAE_Small(nn.Module):
     self.ema_vae.load_state_dict(model_state_dict)
 
   def forward(self, lr, hr):
-    lr, lr_proc = self.preprocess_func(lr)
+    #lr, lr_proc = self.preprocess_func(lr)
     #lr = lr.permute(0, 2, 3, 1).contiguous()
-    activations_sr = self.vae_sr.module.forward_sr_activations(lr)
+    activations_sr = self.vae_sr(lr)
     hr, hr_proc = self.preprocess_func(hr)
     stats = self.vae.forward(hr, hr_proc, activations_sr=activations_sr)
     return stats
         
   def forward_ema(self,lr,hr):
-    lr, lr_proc = self.preprocess_func(lr)
+    #lr, lr_proc = self.preprocess_func(lr)
     #lr = lr.permute(0, 2, 3, 1).contiguous()
-    activations_sr = self.ema_vae_sr.forward_sr_activations(lr)
+    activations_sr = self.vae_sr(lr)
     hr, hr_proc = self.preprocess_func(hr)
     stats = self.ema_vae.forward(hr, hr_proc, activations_sr=activations_sr)
     return stats
 
   def forward_sr_sample(self, x, n_batch):
-    x, x_proc = self.preprocess_func(x)
-    activations_sr = self.ema_vae_sr.forward_sr_activations(x)
+    #x, x_proc = self.preprocess_func(x)
+    activations_sr = self.vae_sr(x)
     
     output = self.ema_vae.forward_sr_sample(n_batch, activations_sr)
     return output
