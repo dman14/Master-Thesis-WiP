@@ -46,6 +46,7 @@ class Trainer:
 
     self.config.update(model.H1)
     self.config.update({"enc_blocks_lr":model.H2.enc_blocks, "dec_blocks_lr": model.H2.dec_blocks})
+    self.config.update({"encoder_grads":"False","decoder_grads":":4, -12:","encoder_lr_grads":"True","decoder_lr_grads":"False"})
 
   def setup_wandb(self, wandb, project_name="UNSET"):
     """
