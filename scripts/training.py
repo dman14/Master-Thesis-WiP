@@ -15,9 +15,9 @@ class Trainer:
     """
     self.epoch_start = 1
 
-  def setup_hyperparams(self, wandb, batch_size = 30, test_batch_size = 10,
+  def setup_hyperparams(self, wandb, model, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
-                        no_cuda = False, seed = 42, log_interval = 10, model):
+                        no_cuda = False, seed = 42, log_interval = 10):
     """
     function to set-up hyperparameters for the training.
     uses the wandb.config in order to be able to save them in the
@@ -210,7 +210,7 @@ class Trainer:
     and starts the training
     """
     self.setup_wandb(wandb, project_name)
-    self.setup_hyperparams(wandb, batch_size, test_batch_size, epochs, model)
+    self.setup_hyperparams(wandb, model, batch_size, test_batch_size, epochs)
 
     # Set cuda or cpu based on config and availability
     self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
