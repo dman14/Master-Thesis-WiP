@@ -17,7 +17,7 @@ class Trainer:
 
   def setup_hyperparams(self, wandb, batch_size = 30, test_batch_size = 10,
                         epochs = 10, lr = 0.01, momentum = 0.5,
-                        no_cuda = False, seed = 42, log_interval = 10):
+                        no_cuda = False, seed = 42, log_interval = 10, model):
     """
     function to set-up hyperparameters for the training.
     uses the wandb.config in order to be able to save them in the
@@ -38,11 +38,14 @@ class Trainer:
     self.config.batch_size = batch_size
     self.config.test_batch_size = test_batch_size
     self.config.epochs = epochs
-    self.config.lr = lr / 100
-    self.config.momentum = momentum
+    #self.config.lr = lr / 100
+    #self.config.momentum = momentum
     self.config.no_cuda = no_cuda
     self.config.seed = seed
     self.config.log_interval = log_interval
+
+    self.config.update(model.H1)
+    self.config.update({"enc_blocks_lr":model.H2.enc_blocks, "dec_blocks_lr": model.H2.dec_blocks})
 
   def setup_wandb(self, wandb, project_name="UNSET"):
     """
@@ -174,16 +177,17 @@ class Trainer:
                                self.train_dataloader, self.optimizer,
                                self.loss_func,wandb, self.scheduler)
         reconstruction = loss.pop("reconstruction")
+        loss.update({"epoch":epoch})
         wandb.log(loss)
-        wandb.log({"epoch":epoch})
 
         loss = self.test_step(self.model, self.device,
                               self.test_dataloader, self.loss_func)
 
         reconstruction = loss.pop("reconstruction")
         sample = loss.pop("sample")
+        loss.update({"epoch_e":epoch})
+        wandb.log(loss)
         if epoch % 1 ==0 :
-          wandb.log(loss)
           wandb.log({"reconstruction":wandb.Image(reconstruction[0])})
           wandb.log({"sample":wandb.Image(sample)})
 
@@ -205,7 +209,7 @@ class Trainer:
     and starts the training
     """
     self.setup_wandb(wandb, project_name)
-    self.setup_hyperparams(wandb, batch_size, test_batch_size, epochs)
+    self.setup_hyperparams(wandb, batch_size, test_batch_size, epochs, model)
 
     # Set cuda or cpu based on config and availability
     self.use_cuda = not self.config.no_cuda and torch.cuda.is_available()
@@ -296,7 +300,7 @@ def training_step(model, device, train_loader, optimizer, loss_func,wandb,
                                                   grad_norm=grad_norm)
     counter = counter + 1
     if counter % 100 == 0:
-      wandb.log(stats)
+      #wandb.log(stats)
       print("-Batch nr. ",counter,", ELBO:",stats['elbo'],"Distrortion:",stats['distortion'])
 
     scheduler.step()
