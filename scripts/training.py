@@ -195,8 +195,11 @@ class Trainer:
         if epoch % 1 ==0 :
           wandb.log({"reconstruction":wandb.Image(reconstruction[0])})
           wandb.log({"sample":wandb.Image(sample)})
+          
 
         if epoch % 5 ==0 :
+          output = self.model.forward_sr_sample(pic, 1)
+          wandb.log({"test_sample":wandb.Image(output[0])})
           self.model_save(wandb,self.save_path)
         if epoch % 50 ==0 :
           self.model_save(wandb,self.save_path,project_name= self.project_name + epoch)
@@ -210,11 +213,12 @@ class Trainer:
                  single = None, size = 64, shuffle = True,
                  num_workers = 0, optimizer = optim.SGD,
                  optim_kwargs = None, resume = False, 
-                 resume_path = None,):
+                 resume_path = None,test_pic = None):
     """
     Function that receives all arguments, initializes every module, 
     and starts the training
     """
+    self.test_pic = test_pic
     self.setup_wandb(wandb, project_name)
     self.setup_hyperparams(wandb, model, batch_size, test_batch_size, epochs)
 
