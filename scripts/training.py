@@ -60,13 +60,17 @@ class Trainer:
     wandb.watch_called = False # Re-run the model without restarting
                                #the runtime, unnecessary after the next release
 
-  def model_save(self,wandb, save_path = "/"):
+  def model_save(self,wandb, save_path = "/", project_name=None):
     """
     Saves the model in the current state to the specified path, and with 
     the specified name
     """
-    torch.save(self.model.state_dict(), save_path + self.project_name + ".h5")
-    wandb.save(self.project_name + ".h5")
+    if project_name is None:
+      torch.save(self.model.state_dict(), save_path + self.project_name + ".h5")
+      wandb.save(self.project_name + ".h5")
+    else:
+      torch.save(self.model.state_dict(), save_path + project_name + ".h5")
+      wandb.save(self.project_name + ".h5")
 
   def setup_train_step(self, training_step):
     """
@@ -194,6 +198,8 @@ class Trainer:
 
         if epoch % 5 ==0 :
           self.model_save(wandb,self.save_path)
+        if epoch % 50 ==0 :
+          self.model_save(wandb,self.save_path,project_name= self.project_name + epoch)
 
   def Main_start(self, training_step, test_step, model, train_path,
                  val_path, loss_func, wandb, batch_size = 30, 
