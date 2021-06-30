@@ -198,7 +198,7 @@ class Trainer:
           
 
         if epoch % 5 ==0 :
-          output = self.model.forward_sr_sample(pic, 1)
+          output = self.model.forward_sr_sample(self.test_pic, 1)
           wandb.log({"test_sample":wandb.Image(output[0])})
           self.model_save(wandb,self.save_path)
         if epoch % 50 ==0 :
