@@ -202,7 +202,7 @@ class Trainer:
           wandb.log({"test_sample":wandb.Image(output[0])})
           self.model_save(wandb,self.save_path)
         if epoch % 50 ==0 :
-          self.model_save(wandb,self.save_path,project_name= self.project_name + epoch)
+          self.model_save(wandb,self.save_path,project_name= self.project_name+ "_" + str(epoch))
 
   def Main_start(self, training_step, test_step, model, train_path,
                  val_path, loss_func, wandb, batch_size = 30, 
