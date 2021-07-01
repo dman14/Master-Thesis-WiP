@@ -78,6 +78,9 @@ class Encoder(HModule):
         for b in enc_blocks:
             b.c4.weight.data *= np.sqrt(1 / n_blocks)
         self.enc_blocks = nn.ModuleList(enc_blocks)
+        #if self.H.image_size == 16:
+        #    param_list = [nn.Parameter(torch.zeros(4, H.width, i,i)) for i in self.widths.keys()]
+        #    self.gate_params = nn.ParameterList(param_list)
 
     def forward(self, x):
         x = x.permute(0, 3, 1, 2).contiguous()
@@ -89,6 +92,10 @@ class Encoder(HModule):
             res = x.shape[2]
             x = x if x.shape[1] == self.widths[res] else pad_channels(x, self.widths[res])
             activations[res] = x
+
+        #if self.H.image_size == 16:
+        #    for param in self.gate_params:
+        #        activations[param.shape[3]] = activations[param.shape[3]]*param
         return activations
 
 
