@@ -105,6 +105,37 @@ class SRVAE(nn.Module):
     return inp, out
 
 
+class conv_net_partial(nn.module):
+  def build(self):
+    self.cnn_1 = nn.Conv2d(in_channels=3,
+                                out_channels=512,
+                                kernel_size=1,
+                                stride=1,
+                                padding=0)
+
+    self.cnn_2 = nn.Conv2d(in_channels=512,
+                                out_channels=512,
+                                kernel_size=9,
+                                stride=1,
+                                padding=0)
+
+    self.cnn_3 = nn.Conv2d(in_channels=512,
+                                out_channels=512,
+                                kernel_size=5,
+                                stride=1,
+                                padding=0)
+
+    self.cnn_4 = nn.Conv2d(in_channels=512,
+                                out_channels=512,
+                                kernel_size=4,
+                                stride=1,
+                                padding=0)
+    def forward(self,x):
+      x1 = F.relu(self.cnn_1(x))
+      x2 = F.relu(self.cnn_1(x1))
+      x3 = F.relu(self.cnn_1(x2))
+      x4 = F.relu(self.cnn_1(x3))
+      return {"1":x4,"4":x3,"8":x2,"16":x1}
 
 class SRVAE_Small(nn.Module):
   def build(self):
@@ -119,27 +150,16 @@ class SRVAE_Small(nn.Module):
     self.vae, self.ema_vae = load_vaes(self.H1, self.logprint1)
 
   def build_parcial_model(self):
-    self.vae_sr = nn.Sequential(
-            nn.Conv2d(in_channels=3,
-                                out_channels=64,
-                                kernel_size=9,
-                                stride=1,
-                                padding=0),
-            nn.ReLU(),
-            
-            nn.Conv2d(in_channels=64,
-                                out_channels=256,
-                                kernel_size=5,
-                                stride=1,
-                                padding=0),
-            nn.ReLU(),
-            
-            nn.Conv2d(in_channels=256,
-                               out_channels=512,
-                               kernel_size=4,
-                               stride=1,
-                               padding=0)
-        )
+    #self.vae_sr = nn.Sequential(
+    #        nn.ReLU(),
+    #        nn.Conv2d(in_channels=3,
+    #                           out_channels=512,
+    #                           kernel_size=16,
+    #                           stride=1,
+    #                           padding=0)
+    #    )
+    self.var_sr = conv_net_partial()
+    self.vae_sr = self.vae_sr.cuda()
 
   def load_saved_models(self, model_path, model_path_ema):
     
