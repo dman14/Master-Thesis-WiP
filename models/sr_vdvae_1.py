@@ -105,7 +105,7 @@ class SRVAE(nn.Module):
     return inp, out
 
 
-class conv_net_partial(nn.module):
+class conv_net_partial(nn.Module):
   def build(self):
     self.cnn_1 = nn.Conv2d(in_channels=3,
                                 out_channels=512,
