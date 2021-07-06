@@ -21,7 +21,9 @@ class SRDataset(Dataset):
         transform (callable, optional): Optional transform to be applied
         on a sample.
    """
-    self.images_frame = os.listdir(root_dir)
+    #self.images_frame = os.listdir(root_dir)
+    self.images_frame = [os.path.join(pth, f)
+                        for pth, dirs, files in os.walk(root_dir) for f in files]
     self.root_dir = root_dir
     self.transform = transform
     if rescaler:
@@ -37,8 +39,9 @@ class SRDataset(Dataset):
       idx = idx.tolist()
 
 
-    img_name = os.path.join(self.root_dir,
-                            self.images_frame[idx])
+    #img_name = os.path.join(self.root_dir,
+    #                        self.images_frame[idx])
+    img_name = self.images_frame[idx]
     image = Image.open(img_name)
 
     if self.transform:
