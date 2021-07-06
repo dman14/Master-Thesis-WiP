@@ -79,7 +79,7 @@ class Encoder(HModule):
             b.c4.weight.data *= np.sqrt(1 / n_blocks)
         self.enc_blocks = nn.ModuleList(enc_blocks)
         if self.H.image_size == 16:
-            param_list = [nn.Parameter(torch.zeros(4, H.width, 1,1)) for i in self.widths.keys()]
+            param_list = [nn.Parameter(torch.zeros(1, H.width, 1,1)) for i in self.widths.keys()]
             self.gate_params = nn.ParameterList(param_list)
 
     def forward(self, x):
