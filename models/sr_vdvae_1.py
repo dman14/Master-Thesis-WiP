@@ -135,7 +135,7 @@ class conv_net_partial(nn.Module):
     x2 = F.relu(self.cnn_2(x1))
     x3 = F.relu(self.cnn_3(x2))
     x4 = F.relu(self.cnn_4(x3))
-    return {"1":x4,"4":x3,"8":x2,"16":x1}
+    return {1:x4,4:x3,8:x2,16:x1}
 
 class SRVAE_Small(nn.Module):
   def build(self):
