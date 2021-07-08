@@ -78,9 +78,9 @@ class Encoder(HModule):
         for b in enc_blocks:
             b.c4.weight.data *= np.sqrt(1 / n_blocks)
         self.enc_blocks = nn.ModuleList(enc_blocks)
-        if self.H.image_size == 16:
-            param_list = [nn.Parameter(torch.zeros(1, H.width, 1,1)) for i in self.widths.keys()]
-            self.gate_params = nn.ParameterList(param_list)
+        #if self.H.image_size == 16:
+        #    param_list = [nn.Parameter(torch.zeros(1, H.width, 1,1)) for i in self.widths.keys()]
+        #    self.gate_params = nn.ParameterList(param_list)
 
     def forward(self, x):
         x = x.permute(0, 3, 1, 2).contiguous()
@@ -93,9 +93,9 @@ class Encoder(HModule):
             x = x if x.shape[1] == self.widths[res] else pad_channels(x, self.widths[res])
             activations[res] = x
 
-        if self.H.image_size == 16:
-            for index, key in enumerate(activations):
-                activations[key] = activations[key]*self.gate_params[index]
+        #if self.H.image_size == 16:
+        #    for index, key in enumerate(activations):
+        #        activations[key] = activations[key]*self.gate_params[index]
         return activations
 
 
@@ -118,7 +118,7 @@ class DecBlock(nn.Module):
         self.resnet.c4.weight.data *= np.sqrt(1 / n_blocks)
         self.z_fn = lambda x: self.z_proj(x)
 
-        #self.gate_param = nn.Parameter(torch.zeros(1, H.width, 1,1))
+        self.gate_param = nn.Parameter(torch.zeros(1, H.width, 1,1))
 
     def sample(self, x, acts):
         qm, qv = self.enc(torch.cat([x, acts], dim=1)).chunk(2, dim=1)
@@ -143,15 +143,16 @@ class DecBlock(nn.Module):
         return z, x
 
     def get_inputs(self, xs, activations, activations_sr = None):
-        if self.base < 32:
-            acts = activations[self.base] + activations_sr[self.base] #* self.gate_param
-        else:
-             acts = activations[self.base]
+        
+        acts = activations[self.base]
         try:
-            x = xs[self.base]
-            if self.base == 1 and activations_sr is not None:
+            if self.base < 32 and activations_sr is not None:
+                x = xs[self.base] + activations_sr[self.base] * self.gate_param
+            elif self.base == 1 and activations_sr is not None:
                 x= activations_sr[1]
-
+            else:
+                x = xs[self.base]
+          
         except KeyError:
             x = torch.zeros_like(acts) 
         if acts.shape[0] != x.shape[0]:
@@ -172,9 +173,12 @@ class DecBlock(nn.Module):
 
     def forward_uncond(self, xs, t=None, lvs=None, activations_sr=None):
         try:
-            x = xs[self.base]# + activations_sr[self.base]
-            if self.base == 1 and activations_sr is not None:
+            if self.base < 32 and activations_sr is not None:
+                x = xs[self.base] + activations_sr[self.base] * self.gate_param
+            elif self.base == 1 and activations_sr is not None:
                 x = activations_sr[1]
+            else:
+                x = xs[self.base]
 
         except KeyError:
             ref = xs[list(xs.keys())[0]]
