@@ -118,6 +118,8 @@ class DecBlock(nn.Module):
         self.resnet.c4.weight.data *= np.sqrt(1 / n_blocks)
         self.z_fn = lambda x: self.z_proj(x)
 
+        #self.gate_param = nn.Parameter(torch.zeros(1, H.width, 1,1))
+
     def sample(self, x, acts):
         qm, qv = self.enc(torch.cat([x, acts], dim=1)).chunk(2, dim=1)
         feats = self.prior(x)
@@ -142,7 +144,7 @@ class DecBlock(nn.Module):
 
     def get_inputs(self, xs, activations, activations_sr = None):
         if self.base < 32:
-            acts = activations[self.base] + activations_sr[self.base]
+            acts = activations[self.base] + activations_sr[self.base] #* self.gate_param
         else:
              acts = activations[self.base]
         try:

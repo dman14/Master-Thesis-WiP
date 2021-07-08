@@ -192,6 +192,9 @@ def load_vaes(H, logprint):
       vae.decoder.requires_grad_(False)
       vae.decoder.dec_blocks[-12:].requires_grad_(True)
       vae.decoder.dec_blocks[:4].requires_grad_(True)
+      #vae.decoder.dec_blocks[0].requires_grad_(True)
+      #for i in range (0,len(vae.decoder.dec_blocks[:]) ):
+      #  vae.decoder.dec_blocks[i].gate_param.requires_grad_(True)
 
     vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank, find_unused_parameters=True)
 
