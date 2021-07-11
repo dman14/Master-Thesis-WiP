@@ -24,9 +24,9 @@ class Tester:
     model.eval()
     with torch.no_grad():
       for lr_batch, ref_batch in test_loader:
-        output = test_step(model, device, lr_batch[i])
+        output = test_step(model, device, lr_batch)
         for i in range (0,lr_batch.shape[0]):
-          psnr, ssimScore = quality_measure_YCbCr(ref_batch[i], output)
+          psnr, ssimScore = quality_measure_YCbCr(ref_batch[i], output[i])
           self.psnr_list.append(psnr)
           self.ssim_list.append(ssimScore)
     
