@@ -189,9 +189,9 @@ def load_vaes(H, logprint):
     if H.image_size == 64:
       vae.encoder.requires_grad_(False)
       #vae.encoder.enc_blocks[-5:].requires_grad_(True)
-      vae.decoder.requires_grad_(False)
-      vae.decoder.dec_blocks[-12:].requires_grad_(True)
-      vae.decoder.dec_blocks[:4].requires_grad_(True)
+      #vae.decoder.requires_grad_(False)
+      #vae.decoder.dec_blocks[-12:].requires_grad_(True)
+      #vae.decoder.dec_blocks[:4].requires_grad_(True)
       #vae.decoder.dec_blocks[0].requires_grad_(True)
       #for i in range (0,len(vae.decoder.dec_blocks[:]) ):
       #  vae.decoder.dec_blocks[i].gate_param.requires_grad_(True)
