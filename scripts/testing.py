@@ -21,19 +21,25 @@ class Tester:
   def run_test(self, model, device, test_loader, test_step, loss_func):
     self.psnr_list = []
     self.ssim_list = []
+    self.niqe_ref_list = []
+    self.niqe_out_list = []
     model.eval()
     with torch.no_grad():
       for lr_batch, ref_batch in test_loader:
         output = test_step(model, device, lr_batch)
         for i in range (0,lr_batch.shape[0]):
-          psnr, ssimScore = quality_measure_YCbCr(ref_batch[i], output[i])
+          psnr, ssimScore, niqe_ref, niqe_out = quality_measure_YCbCr(ref_batch[i], output[i])
           self.psnr_list.append(psnr)
           self.ssim_list.append(ssimScore)
+          self.niqe_ref_list.append(niqe_ref)
+          self.niqe_out_list.append(niqe_out)
     
  
-  def mean_metrics(self, psnr_list, ssim_list):
+  def mean_metrics(self, psnr_list, ssim_list, niqe_ref_list, niqe_out_list):
     self.mean_psnr = np.mean(psnr_list)
     self.ssim_list = np.mean(ssim_list)
+    self.mean_niqe_ref = np.mean(niqe_ref_list)
+    self.mean_niqe_out = np.mean(niqe_out_list)
  
   def example_image():
     a = 1
@@ -47,5 +53,5 @@ class Tester:
 
     self.load_model(model)
     self.run_test(self.model, device, self.test_dataloader,test_step, loss_func)
-    self.mean_metrics(self.psnr_list, self.ssim_list)
-    return self.mean_psnr, self.ssim_list
+    self.mean_metrics(self.psnr_list, self.ssim_list, self.niqe_ref_list, self.niqe_out_list)
+    return self.mean_psnr, self.ssim_list, self.mean_niqe_ref, self.mean_niqe_out
