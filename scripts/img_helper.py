@@ -11,7 +11,6 @@ import pandas as pd
 from pathlib import Path
 import cv2
 from skimage.metrics import structural_similarity as ssim
-from scripts.niqe import *
 
 
 def imshow(image, ax=None, title=None, normalize=False, size = (5,5)):
@@ -256,11 +255,11 @@ def rgb2ycbcr(im_rgb):
 def quality_measure_YCbCr(target, output):
 
   target = (target.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
-  output = (output.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
+  #output = (output.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
   #target = (target.transpose((1, 2, 0))*255).astype(np.uint8)
   #output = (output.transpose((1, 2, 0))*255).astype(np.uint8)
   target = np.asarray(target)
-  output = np.asarray(output)
+  #output = np.asarray(output)
 
   target_ycbcr = rgb2ycbcr(target)
   output_ycbcr = rgb2ycbcr(output)
@@ -270,7 +269,5 @@ def quality_measure_YCbCr(target, output):
  
   psnr = cv2.PSNR(y1, y2) 
   score, diff = ssim(target, output, multichannel= True, full = True)
-  niqe_ref = niqe(y1)
-  niqe_out = niqe(y2)
 
-  return psnr, score, niqe_ref, niqe_out
+  return psnr, score
