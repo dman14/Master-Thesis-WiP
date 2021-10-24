@@ -271,3 +271,41 @@ def quality_measure_YCbCr(target, output):
   score, diff = ssim(target, output, multichannel= True, full = True)
 
   return psnr, score
+
+#Making Patches
+def make_patches(lr,patch_size=16):
+  c = lr.shape[0]
+  h = lr.shape[1]
+  w = lr.shape[2]
+  ph = patch_size
+  pw = patch_size
+
+  lr_dim = [ c, h, w ]
+  patch_dim = [ lr_dim[0], ph, pw ]
+
+
+  overlap_h = lr_dim[1] % patch_dim[1]
+  patch_num_h = lr_dim[1] // patch_dim[1]
+  if overlap_h > 0 :
+    patch_num_h +=1
+    overlap_h = patch_dim[1] - overlap_h
+
+  overlap_w = lr_dim[2] % patch_dim[2]
+  patch_num_w = lr_dim[2] // patch_dim[2]
+  if overlap_w > 0 :
+    patch_num_w +=1
+    overlap_w = patch_dim[2] - overlap_w
+
+  patches = []
+  for height_index in range(0,patch_num_h):
+    for width_index in range(0,patch_num_w):
+      if width_index == 0:
+        err_w = 0
+      else:
+        err_w = overlap_w
+      if height_index == 0:
+        err_h = 0
+      else:
+        err_h = overlap_h
+      patches.append( lr[: , height_index*patch_dim[1]-err_h:(height_index+1)*patch_dim[1]-err_h , width_index*patch_dim[2]-err_w:(width_index+1)*patch_dim[2]-err_w] )
+  return patches, patch_dim, overlap_w,overlap_h, patch_num_h, patch_num_w

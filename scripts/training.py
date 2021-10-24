@@ -94,17 +94,17 @@ class Trainer:
     Set-up and load the dataloders for the training
     using the SRDataLoader class
     """
-    self.dataloader_main = SRDataLoader(train_path , scale,
+    self.dataloader_main = SRDataLoader_patches(train_path , scale,
                                         reupscale, single,
-                                        size, self.config.batch_size,
+                                        self.config.batch_size,size,
                                         shuffle, num_workers)
-    self.train_dataloader = self.dataloader_main.get_dataloader()
+    self.train_dataloader = self.dataloader_main.get_dataloader_patches()
 
-    self.dataloader_main = SRDataLoader(val_path , scale,
+    self.dataloader_main = SRDataLoader_patches(val_path , scale,
                                         reupscale, single,
-                                        size, self.config.test_batch_size,
+                                        self.config.test_batch_size,size,
                                         shuffle, num_workers)
-    self.test_dataloader = self.dataloader_main.get_dataloader()
+    self.test_dataloader = self.dataloader_main.get_dataloader_patches()
 
   def load_model(self, model):
     self.model = model
