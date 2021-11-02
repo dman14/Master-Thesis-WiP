@@ -370,7 +370,7 @@ def test_step(model, device, test_loader, loss_func):
   stats["sample"] = output[0]
   return stats
 
-  def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb, 
+def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb, 
                                                                     scheduler):
   t0 = time.time()
   counter = 0
@@ -410,12 +410,18 @@ def test_step(model, device, test_loader, loss_func):
       if counter % 100 == 0:
         #wandb.log(stats)
         print("-Batch nr. ",counter,", ELBO:",stats['elbo'],"Distrortion:",stats['distortion'])
+      if counter % 1000 == 0:
+        save_path = "drive/MyDrive/UNI stuff/Master Thesis/saved models/"
+        project_name = "Patch_model"
+        torch.save(model.state_dict(), save_path + project_name + ".h5")
+        loss.update({"Batch_nr":counter})
+        wandb.log(stats)
 
     scheduler.step()
   return stats
 
 
-  def test_step_patch(model, device, test_loader, loss_func):
+def test_step_patch(model, device, test_loader, loss_func):
   with torch.no_grad():
     stats_valid = []
     vals = []
