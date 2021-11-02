@@ -416,6 +416,7 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
         torch.save(model.state_dict(), save_path + project_name + ".h5")
         stats.update({"Batch_nr":counter})
         wandb.log(stats)
+        counter = stats.pop("Batch_nr")
 
     scheduler.step()
   return stats
