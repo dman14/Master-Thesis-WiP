@@ -414,7 +414,7 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
         save_path = "drive/MyDrive/UNI stuff/Master Thesis/saved models/"
         project_name = "Patch_model"
         torch.save(model.state_dict(), save_path + project_name + ".h5")
-        loss.update({"Batch_nr":counter})
+        stats.update({"Batch_nr":counter})
         wandb.log(stats)
 
     scheduler.step()
