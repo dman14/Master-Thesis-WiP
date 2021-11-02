@@ -369,3 +369,81 @@ def test_step(model, device, test_loader, loss_func):
   output = model.forward_sr_sample(data, 1)
   stats["sample"] = output[0]
   return stats
+
+  def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb, 
+                                                                    scheduler):
+  t0 = time.time()
+  counter = 0
+  #print("sometinhg else")
+  for data_img in train_loader:
+    #print("Someting")
+    for index in range (0,len(data_img[0][0])):
+      model.zero_grad()
+      data = data_img[0][0][index].to(device)
+      target = data_img[0][1][index].to(device)
+      data = data[None, :, :, :]
+      target = target[None, :, :, :]
+      #print(target.shape)
+      stats = model.forward(data,target)
+      stats['elbo'].backward()
+      grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 
+                                                  model.H1.grad_clip).item()
+      distortion_nans = torch.isnan(stats['distortion']).sum()
+      rate_nans = torch.isnan(stats['rate']).sum()
+      stats.update(dict(rate_nans=0 if rate_nans == 0 else 1, 
+                        distortion_nans=0 if distortion_nans == 0 else 1))
+      skipped_updates = 1
+      #print("grad_norm:",grad_norm)
+      # only update if no rank has a nan and if the grad norm is below a 
+      # specific threshold
+
+      if stats['distortion_nans'] == 0 and stats['rate_nans'] == 0 and \
+          (model.H1.skip_threshold == -1 or grad_norm < model.H1.skip_threshold):
+          optimizer.step()
+          skipped_updates = 0
+          update_ema(model.vae, model.ema_vae, model.H1.ema_rate)
+          update_ema(model.vae_sr, model.ema_vae_sr, model.H2.ema_rate)
+      t1 = time.time()
+      stats.update(skipped_updates=skipped_updates, iter_time=t1 - t0, 
+                                                    grad_norm=grad_norm)
+      counter = counter + 1
+      if counter % 100 == 0:
+        #wandb.log(stats)
+        print("-Batch nr. ",counter,", ELBO:",stats['elbo'],"Distrortion:",stats['distortion'])
+
+    scheduler.step()
+  return stats
+
+
+  def test_step_patch(model, device, test_loader, loss_func):
+  with torch.no_grad():
+    stats_valid = []
+    vals = []
+    for data_img in test_loader:
+      #print("Someting")
+      for index in range (0,len(data_img[0][0])):
+        model.zero_grad()
+        data = data_img[0][0][index].to(device)
+        target = data_img[0][1][index].to(device)
+        data = data[None, :, :, :]
+        target = target[None, :, :, :]
+        #print(target.shape)
+        stats = model.forward_ema(data,target)
+        reconstruction = stats.pop("reconstruction")
+        keys = sorted(stats.keys())
+        aux = torch.stack([torch.as_tensor(stats[k]).detach().cpu().float() for k in keys])
+        stats_valid.append({k: aux[i].item() for (i,k) in enumerate(keys)})
+    vals = [a['elbo'] for a in stats_valid]
+    #vals = vals.detach().cpu().numpy()
+    finite = np.array(vals, dtype=float)[np.isfinite(vals)]
+    stats = dict(n_batches=len(vals), filtered_elbo=np.mean(finite),
+                 **{k: np.mean([a[k] for a in stats_valid]) \
+                 for k in stats_valid[-1]})
+  stats["distortion_eval"] = stats.pop("distortion")
+  stats["elbo_eval"] = stats.pop("elbo")
+  stats["rate_eval"] = stats.pop("rate")
+  stats["filtered_elbo_eval"] = stats.pop("filtered_elbo")
+  stats["reconstruction"] = reconstruction
+  output = model.forward_sr_sample(data, 1)
+  stats["sample"] = output[0]
+  return stats
