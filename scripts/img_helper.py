@@ -309,3 +309,28 @@ def make_patches(lr,patch_size=16):
         err_h = overlap_h
       patches.append( lr[: , height_index*patch_dim[1]-err_h:(height_index+1)*patch_dim[1]-err_h , width_index*patch_dim[2]-err_w:(width_index+1)*patch_dim[2]-err_w] )
   return patches, patch_dim, overlap_w,overlap_h, patch_num_h, patch_num_w
+
+#Putting Patches back together
+def image_from_patches(patches, patch_dim, overlap_w, overlap_h, patch_num_h, patch_num_w):
+  for h_index in range (0,patch_num_h):
+    for w_index in range (0,patch_num_w):
+      if w_index == 0 :
+        w_image = patches[h_index*patch_num_w]
+      elif w_index == 1:
+        w_image = np.dstack(( w_image[:,:,:patch_dim[2]-overlap_w] , patches[h_index*patch_num_w + w_index]))
+      else:
+        w_image = np.dstack(( w_image, patches[h_index*patch_num_w + w_index] ))
+    if h_index == 0 :
+      h_image = w_image
+    elif h_index == 1:
+      h_image = np.hstack(( h_image[:,:patch_dim[1]-overlap_h,:] , w_image ))
+    else:
+      h_image = np.hstack(( h_image , w_image))
+  return torch.from_numpy(h_image)
+
+#adjust dims for re-patching
+def patch_dim_adjuster(patch_dim, overlap_w,overlap_h, scale):
+  patch_dim = [patch_dim[0], patch_dim[1]*scale, patch_dim[2]*scale]
+  overlap_w = overlap_w* scale
+  overlap_h = overlap_h* scale
+  return patch_dim, overlap_w,overlap_h
