@@ -17,6 +17,7 @@ from contextlib import contextmanager
 import torch.distributed as dist
 from apex.optimizers import FusedAdam as AdamW
 from vdvae.vae import VAE
+from vdvae.vae_256 import VAE_256
 from torch.nn.parallel.distributed import DistributedDataParallel
 from vdvae.hps import *
 import copy
@@ -206,6 +207,38 @@ def load_vaes(H, logprint):
     logprint(total_params=total_params, readable=f'{total_params:,}')
     return vae, ema_vae
 
+def load_vaes_256(H, logprint):
+    vae = VAE_256(H)
+    if H.restore_path:
+        logprint(f'Restoring vae from {H.restore_path}')
+        restore_params(vae, H.restore_path, map_cpu=True, local_rank=H.local_rank, mpi_size=H.mpi_size)
+
+    ema_vae = VAE_256(H)
+    if H.restore_ema_path:
+        logprint(f'Restoring ema vae from {H.restore_ema_path}')
+        restore_params(ema_vae, H.restore_ema_path, map_cpu=True, local_rank=H.local_rank, mpi_size=H.mpi_size)
+    else:
+        ema_vae.load_state_dict(vae.state_dict())
+    ema_vae.requires_grad_(False)
+
+    vae = vae.cuda(H.local_rank)
+    ema_vae = ema_vae.cuda(H.local_rank)
+
+    if H.image_size == 64:
+      vae.decoder.requires_grad_(False)
+
+    if H.image_size == 256:
+      vae.encoder.requires_grad_(False)
+
+    vae = DistributedDataParallel(vae, device_ids=[H.local_rank], output_device=H.local_rank, find_unused_parameters=True)
+
+    if len(list(vae.named_parameters())) != len(list(vae.parameters())):
+        raise ValueError('Some params are not named. Please name all params.')
+    total_params = 0
+    for name, p in vae.named_parameters():
+        total_params += np.prod(p.shape)
+    logprint(total_params=total_params, readable=f'{total_params:,}')
+    return vae, ema_vae
 
 def load_opt(H, vae, logprint):
     optimizer = AdamW(vae.parameters(), weight_decay=H.wd, lr=H.lr, betas=(H.adam_beta1, H.adam_beta2))

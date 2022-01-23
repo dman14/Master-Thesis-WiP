@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from vdvae.data import set_up_data
 from vdvae.utils import get_cpu_stats_over_ranks
-from vdvae.train_helpers import set_up_hyperparams, load_vaes, load_opt, accumulate_stats, save_model, update_ema
+from vdvae.train_helpers import set_up_hyperparams, load_vaes, load_vaes_256, load_opt, accumulate_stats, save_model, update_ema
 
 
 def training_step(H, data_input, target, vae, ema_vae, optimizer, iterate):
