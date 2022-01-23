@@ -252,32 +252,6 @@ class Trainer:
     self.model_save(wandb,save_path)
 
 
-# def train_step(args, model, device, train_loader, optimizer, loss_func):
-#     model.train()
-#     total_loss = 0
-#     for data, target in train_loader:
-        
-#         optimizer.zero_grad()
-#         data = data.to_device(data)
-#         target = target.to_device(target)
-        
-#         output = model.forward(data,target)
-
-#         loss = loss_func(output, target)
-
-#         total_loss += loss
-        
-#         loss.backward()
-#         optimizer.step()
-        
-#         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(),
-#                                               params.grad_clip).item()
-        
-#         if args.skip_threshold == -1 or grad_norm < args.skip_threshold:
-#             optimizer.step()
-
-#     return {"Training Loss": total_loss}
-
 def training_step(model, device, train_loader, optimizer, loss_func,wandb, 
                                                                     scheduler):
   t0 = time.time()
@@ -317,32 +291,6 @@ def training_step(model, device, train_loader, optimizer, loss_func,wandb,
     scheduler.step()
   return stats
 
- 
-
-# def test_step(args, model, device, test_loader, loss_func):
-#     model.eval()
-    
-#     example_images = []
-#     total_loss = 0
-#     with torch.no_grad():
-    
-#         for data,target in test_loader:
-            
-#             data = data.to_device(data)
-#             target = target.to_device(target)
-            
-#             output = model(data)
-            
-#             test_loss = loss_func(output, target)
-#             total_loss += test_loss
-            
-#     example_images.append(wandb.Image(data[0],
-#                                       caption="Pred: {} Truth: {}".format(output[0].item(),
-#                                                                           target[0])))
-    
-#     return {"Examples": example_images,
-#             "Test Loss": total_loss}
-
 def test_step(model, device, test_loader, loss_func):
   with torch.no_grad():
     stats_valid = []
@@ -374,16 +322,22 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
                                                                     scheduler):
   t0 = time.time()
   counter = 0
-  #print("sometinhg else")
+
   for data_img in train_loader:
-    #print("Someting")
-    for index in range (0,len(data_img[0][0])):
+    #for index in range (0,len(data_img[0][0])):
+    for index in range (0,1):
+      index = len(data_img[0][0]) // 2
       model.zero_grad()
       data = data_img[0][0][index].to(device)
       target = data_img[0][1][index].to(device)
       data = data[None, :, :, :]
       target = target[None, :, :, :]
-      #print(target.shape)
+
+      #########################
+      del data_img
+      torch.cuda.empty_cache()
+      #########################
+
       stats = model.forward(data,target)
       stats['elbo'].backward()
       grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 
@@ -393,7 +347,6 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
       stats.update(dict(rate_nans=0 if rate_nans == 0 else 1, 
                         distortion_nans=0 if distortion_nans == 0 else 1))
       skipped_updates = 1
-      #print("grad_norm:",grad_norm)
       # only update if no rank has a nan and if the grad norm is below a 
       # specific threshold
 
@@ -410,14 +363,6 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
       if counter % 100 == 0:
         #wandb.log(stats)
         print("-Batch nr. ",counter,", ELBO:",stats['elbo'],"Distrortion:",stats['distortion'])
-      if counter % 1000 == 0:
-        save_path = "drive/MyDrive/UNI stuff/Master Thesis/saved models/"
-        project_name = "Patch_model"
-        torch.save(model.state_dict(), save_path + project_name + ".h5")
-        stats.update({"Batch_nr":counter})
-        wandb.log(stats)
-        counter = stats.pop("Batch_nr")
-
     scheduler.step()
   return stats
 
@@ -428,12 +373,19 @@ def test_step_patch(model, device, test_loader, loss_func):
     vals = []
     for data_img in test_loader:
       #print("Someting")
-      for index in range (0,len(data_img[0][0])):
+      for index in range (0,1):
+        index = len(data_img[0][0]) // 2
         model.zero_grad()
         data = data_img[0][0][index].to(device)
         target = data_img[0][1][index].to(device)
         data = data[None, :, :, :]
         target = target[None, :, :, :]
+
+        ############################
+        del data_img
+        torch.cuda.empty_cache()
+        ############################
+
         #print(target.shape)
         stats = model.forward_ema(data,target)
         reconstruction = stats.pop("reconstruction")
