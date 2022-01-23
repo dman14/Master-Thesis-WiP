@@ -139,12 +139,12 @@ class SRDataset_patches(Dataset):
 
     aux = self.rescaler(image)
     if self.rescaler.single:
-      sample, patch_dim, overlap_w,overlap_h,patch_num_h, patch_num_w = make_patches(aux,self.size)
+      sample, mask_p, patches_base, t_size, padding = make_patches(aux,self.size)
       
     else:
       #sample = {'lr': aux[0], 'hr': aux[1]}
-      sample1, patch_dim, overlap_w,overlap_h,patch_num_h, patch_num_w = make_patches(aux[0],self.size)
-      sample2, patch_dim2, overlap_w2,overlap_h2,patch_num_h2, patch_num_w2 = make_patches(aux[1],self.size*4)
+      sample1, mask_p, patches_base, t_size, padding = make_patches(aux[0],self.size)
+      sample2, mask_p2, patches_base2, t_size2, padding2 = make_patches(aux[1],self.size*4)
       sample = (sample1,sample2)
 
     return sample

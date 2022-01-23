@@ -332,12 +332,10 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
       target = data_img[0][1][index].to(device)
       data = data[None, :, :, :]
       target = target[None, :, :, :]
-
       #########################
-      del data_img
-      torch.cuda.empty_cache()
+      #del data_img
+      #torch.cuda.empty_cache()
       #########################
-
       stats = model.forward(data,target)
       stats['elbo'].backward()
       grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 
@@ -382,8 +380,8 @@ def test_step_patch(model, device, test_loader, loss_func):
         target = target[None, :, :, :]
 
         ############################
-        del data_img
-        torch.cuda.empty_cache()
+        #del data_img
+        #torch.cuda.empty_cache()
         ############################
 
         #print(target.shape)

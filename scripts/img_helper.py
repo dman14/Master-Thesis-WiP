@@ -11,6 +11,7 @@ import pandas as pd
 from pathlib import Path
 import cv2
 from skimage.metrics import structural_similarity as ssim
+import torch.nn as nn
 
 
 def imshow(image, ax=None, title=None, normalize=False, size = (5,5)):
@@ -275,6 +276,7 @@ def quality_measure_YCbCr(target, output):
 #Making Patches
 def make_patches(tensor,patch_size=16):
   #mask = torch.ones_like(tensor)
+  tensor = tensor.unsqueeze(0)
   stride  = patch_size//2
   wo = tensor.size(2)
   ho = tensor.size(3)
@@ -308,10 +310,10 @@ def make_patches(tensor,patch_size=16):
   else: 
       patches_base = torch.zeros((patches.size()[0],patches.size()[1],patches.size()[2]*4,patches.size()[3]*4))
 
-  patches = []
+  tiles = []
   for t in range(patches.size(0)):
-       patches.append(patches[[t], :, :, :])
-  return patches, mask_p, patches_base, (tensor.size(2)*4, tensor.size(3)*4), ((wn-wo)*4,(hn-ho)*4)
+       tiles.append(torch.squeeze(patches[[t], :, :, :]))
+  return tiles, mask_p, patches_base, (tensor.size(2)*4, tensor.size(3)*4), ((wn-wo)*4,(hn-ho)*4)
 
 #Putting Patches back together
 def image_from_patches(tensor_list, mask_t, base_tensor, t_size, tile_size=256, padding=0):
