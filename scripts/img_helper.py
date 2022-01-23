@@ -273,64 +273,63 @@ def quality_measure_YCbCr(target, output):
   return psnr, score
 
 #Making Patches
-def make_patches(lr,patch_size=16):
-  c = lr.shape[0]
-  h = lr.shape[1]
-  w = lr.shape[2]
-  ph = patch_size
-  pw = patch_size
+def make_patches(tensor,patch_size=16):
+  #mask = torch.ones_like(tensor)
+  stride  = patch_size//2
+  wo = tensor.size(2)
+  ho = tensor.size(3)
+  wn = wo + stride - (wo%stride)
+  hn = ho + stride - (ho%stride)
+  if stride - (wo%stride) > 0 and stride - (wo%stride) < stride:
+    #pad = nn.ReplicationPad2d((0,0,0,wn-wo))
+    #tensor = pad(tensor)
+    tensor = np.pad(tensor,((0,0),(0,0),(0,wn-wo),(0,0)),mode='edge')
+    tensor = torch.from_numpy(tensor)
+  else:
+    wn = wo
+  if stride - (ho%stride) > 0 and stride - (ho%stride) < stride:
+    #pad = nn.ReplicationPad2d((0,hn-ho,0,0))
+    #tensor = pad(tensor)
+    tensor = np.pad(tensor,((0,0),(0,0),(0,0),(0,hn-ho)),mode='edge')
+    tensor = torch.from_numpy(tensor)
+  else:
+    hn = ho
+  mask= torch.ones((tensor.size()[0],tensor.size()[1],tensor.size()[2]*4,tensor.size()[3]*4))
+  # use torch.nn.Unfold
+  unfold  = nn.Unfold(kernel_size=(patch_size, patch_size), stride=stride)
+  unfold2 = nn.Unfold(kernel_size=(patch_size*4, patch_size*4), stride=stride*4)
+  # Apply to mask and original image
+  mask_p  = unfold2(mask)
+  patches = unfold(tensor)
 
-  lr_dim = [ c, h, w ]
-  patch_dim = [ lr_dim[0], ph, pw ]
-
-
-  overlap_h = lr_dim[1] % patch_dim[1]
-  patch_num_h = lr_dim[1] // patch_dim[1]
-  if overlap_h > 0 :
-    patch_num_h +=1
-    overlap_h = patch_dim[1] - overlap_h
-
-  overlap_w = lr_dim[2] % patch_dim[2]
-  patch_num_w = lr_dim[2] // patch_dim[2]
-  if overlap_w > 0 :
-    patch_num_w +=1
-    overlap_w = patch_dim[2] - overlap_w
+  patches = patches.reshape(3, patch_size, patch_size, -1).permute(3, 0, 1, 2)
+  if tensor.is_cuda:
+      patches_base = torch.zeros((patches.size()[0],patches.size()[1],patches.size()[2]*4,patches.size()[3]*4), device=tensor.get_device())
+  else: 
+      patches_base = torch.zeros((patches.size()[0],patches.size()[1],patches.size()[2]*4,patches.size()[3]*4))
 
   patches = []
-  for height_index in range(0,patch_num_h):
-    for width_index in range(0,patch_num_w):
-      if width_index == 0:
-        err_w = 0
-      else:
-        err_w = overlap_w
-      if height_index == 0:
-        err_h = 0
-      else:
-        err_h = overlap_h
-      patches.append( lr[: , height_index*patch_dim[1]-err_h:(height_index+1)*patch_dim[1]-err_h , width_index*patch_dim[2]-err_w:(width_index+1)*patch_dim[2]-err_w] )
-  return patches, patch_dim, overlap_w,overlap_h, patch_num_h, patch_num_w
+  for t in range(patches.size(0)):
+       patches.append(patches[[t], :, :, :])
+  return patches, mask_p, patches_base, (tensor.size(2)*4, tensor.size(3)*4), ((wn-wo)*4,(hn-ho)*4)
 
 #Putting Patches back together
-def image_from_patches(patches, patch_dim, overlap_w, overlap_h, patch_num_h, patch_num_w):
-  for h_index in range (0,patch_num_h):
-    for w_index in range (0,patch_num_w):
-      if w_index == 0 :
-        w_image = patches[h_index*patch_num_w]
-      elif w_index == 1:
-        w_image = np.dstack(( w_image[:,:,:patch_dim[2]-overlap_w] , patches[h_index*patch_num_w + w_index]))
-      else:
-        w_image = np.dstack(( w_image, patches[h_index*patch_num_w + w_index] ))
-    if h_index == 0 :
-      h_image = w_image
-    elif h_index == 1:
-      h_image = np.hstack(( h_image[:,:patch_dim[1]-overlap_h,:] , w_image ))
-    else:
-      h_image = np.hstack(( h_image , w_image))
-  return torch.from_numpy(h_image)
+def image_from_patches(tensor_list, mask_t, base_tensor, t_size, tile_size=256, padding=0):
+    stride  = tile_size//2
+    base_tensor = base_tensor.to('cuda')
+    # base_tensor here is used as a container
 
-#adjust dims for re-patching
-def patch_dim_adjuster(patch_dim, overlap_w,overlap_h, scale):
-  patch_dim = [patch_dim[0], patch_dim[1]*scale, patch_dim[2]*scale]
-  overlap_w = overlap_w* scale
-  overlap_h = overlap_h* scale
-  return patch_dim, overlap_w,overlap_h
+    for t, tile in enumerate(tensor_list):
+         #print(tile.size())
+         tile = tile.type(torch.FloatTensor)
+         tile = tile.to('cuda')
+         base_tensor[[t], :, :] = tile
+   
+    base_tensor = base_tensor.permute(1, 2, 3, 0).reshape(3*tile_size*tile_size, base_tensor.size(0)).unsqueeze(0)
+    fold = nn.Fold(output_size=(t_size[0], t_size[1]), kernel_size=(tile_size, tile_size), stride=stride)
+    # https://discuss.pytorch.org/t/seemlessly-blending-tensors-together/65235/2?u=bowenroom
+    mask_t = mask_t.to('cuda')
+    output_tensor = fold(base_tensor)/fold(mask_t)
+
+    output_tensor = output_tensor[:,:, :output_tensor.shape[2]-padding[0], :output_tensor.shape[3]-padding[1]]
+    return output_tensor

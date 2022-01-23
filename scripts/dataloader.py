@@ -144,7 +144,7 @@ class SRDataset_patches(Dataset):
     else:
       #sample = {'lr': aux[0], 'hr': aux[1]}
       sample1, patch_dim, overlap_w,overlap_h,patch_num_h, patch_num_w = make_patches(aux[0],self.size)
-      sample2, patch_dim2, overlap_w,overlap_h2,patch_num_h2, patch_num_w2 = make_patches(aux[1],self.size*4)
+      sample2, patch_dim2, overlap_w2,overlap_h2,patch_num_h2, patch_num_w2 = make_patches(aux[1],self.size*4)
       sample = (sample1,sample2)
 
     return sample
