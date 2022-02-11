@@ -255,11 +255,11 @@ def rgb2ycbcr(im_rgb):
 
 def quality_measure_YCbCr(target, output):
 
-  target = (target.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
+  #target = (target.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
   #output = (output.numpy().transpose((1, 2, 0))*255).astype(np.uint8)
   #target = (target.transpose((1, 2, 0))*255).astype(np.uint8)
   #output = (output.transpose((1, 2, 0))*255).astype(np.uint8)
-  target = np.asarray(target)
+  #target = np.asarray(target)
   #output = np.asarray(output)
 
   target_ycbcr = rgb2ycbcr(target)
@@ -274,7 +274,7 @@ def quality_measure_YCbCr(target, output):
   return psnr, score
 
 #Making Patches
-def make_patches(tensor,patch_size=16):
+def make_patches(tensor,patch_size=16,scale=4):
   #mask = torch.ones_like(tensor)
   tensor = tensor.unsqueeze(0)
   stride  = patch_size//2
@@ -296,24 +296,24 @@ def make_patches(tensor,patch_size=16):
     tensor = torch.from_numpy(tensor)
   else:
     hn = ho
-  mask= torch.ones((tensor.size()[0],tensor.size()[1],tensor.size()[2]*4,tensor.size()[3]*4))
+  mask= torch.ones((tensor.size()[0],tensor.size()[1],tensor.size()[2]*scale,tensor.size()[3]*scale))
   # use torch.nn.Unfold
   unfold  = nn.Unfold(kernel_size=(patch_size, patch_size), stride=stride)
-  unfold2 = nn.Unfold(kernel_size=(patch_size*4, patch_size*4), stride=stride*4)
+  unfold2 = nn.Unfold(kernel_size=(patch_size*scale, patch_size*scale), stride=stride*scale)
   # Apply to mask and original image
   mask_p  = unfold2(mask)
   patches = unfold(tensor)
 
   patches = patches.reshape(3, patch_size, patch_size, -1).permute(3, 0, 1, 2)
   if tensor.is_cuda:
-      patches_base = torch.zeros((patches.size()[0],patches.size()[1],patches.size()[2]*4,patches.size()[3]*4), device=tensor.get_device())
+      patches_base = torch.zeros((patches.size()[0],patches.size()[1],patches.size()[2]*scale,patches.size()[3]*scale), device=tensor.get_device())
   else: 
-      patches_base = torch.zeros((patches.size()[0],patches.size()[1],patches.size()[2]*4,patches.size()[3]*4))
+      patches_base = torch.zeros((patches.size()[0],patches.size()[1],patches.size()[2]*scale,patches.size()[3]*scale))
 
   tiles = []
   for t in range(patches.size(0)):
        tiles.append(torch.squeeze(patches[[t], :, :, :]))
-  return tiles, mask_p, patches_base, (tensor.size(2)*4, tensor.size(3)*4), ((wn-wo)*4,(hn-ho)*4)
+  return tiles, mask_p, patches_base, (tensor.size(2)*scale, tensor.size(3)*scale), ((wn-wo)*scale,(hn-ho)*scale)
 
 #Putting Patches back together
 def image_from_patches(tensor_list, mask_t, base_tensor, t_size, tile_size=256, padding=0):
