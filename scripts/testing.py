@@ -7,12 +7,12 @@ class Tester:
     a = 1
   def setup_dataloader(self, test_path, scale = 4, 
                        reupscale = None,batch_size = 1, single = None, size = 64,
-                       shuffle = False, num_workers = 0):
-  
+                       shuffle = False, num_workers = 0,repatch_data=True):
+    self.size = size
     self.dataloader_main = SRDataLoader(test_path , scale,
                                         reupscale, single,
                                         size, batch_size,
-                                        shuffle, num_workers)
+                                        shuffle, num_workers, repatch_data)
     self.test_dataloader = self.dataloader_main.get_dataloader()
     
   def load_model(self, model):
@@ -23,10 +23,12 @@ class Tester:
     self.ssim_list = []
     model.eval()
     with torch.no_grad():
-      for lr_batch, ref_batch in test_loader:
-        output = test_step(model, device, lr_batch)
+      for lr_batch, ref_batch,lr_patch_data,hr_patch_data in test_loader:
+        output = test_step(model, device, lr_batch,lr_patch_data,self.size)
+        (mask_t, base_tensor, t_size, padding) = hr_patch_data
+        ref = image_from_patches(ref_batch[0],mask_t, base_tensor, t_size,self.size*4 ,padding)
         for i in range (0,lr_batch.shape[0]):
-          psnr, ssimScore = quality_measure_YCbCr(ref_batch[i], output[i])
+          psnr, ssimScore = quality_measure_YCbCr(ref, output[i])
           self.psnr_list.append(psnr)
           self.ssim_list.append(ssimScore)
     
