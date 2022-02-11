@@ -103,7 +103,7 @@ class SRDataLoader(DataLoader):
 class SRDataset_patches(Dataset):
   """Super Resolution dataset."""
 
-  def __init__(self, root_dir, transform=None, rescaler=None, size = 16):
+  def __init__(self, root_dir, transform=None, rescaler=None, size = 16,repatch_data = False):
     """
     Args:
         root_dir (string): Directory with all the images.
@@ -116,6 +116,7 @@ class SRDataset_patches(Dataset):
     self.root_dir = root_dir
     self.transform = transform
     self.size = size
+    self.repatch_data = repatch_data
     if rescaler:
       self.rescaler = rescaler
     else:
@@ -144,10 +145,13 @@ class SRDataset_patches(Dataset):
     else:
       #sample = {'lr': aux[0], 'hr': aux[1]}
       sample1, mask_p, patches_base, t_size, padding = make_patches(aux[0],self.size)
-      sample2, mask_p2, patches_base2, t_size2, padding2 = make_patches(aux[1],self.size*4)
+      sample2, mask_p2, patches_base2, t_size2, padding2 = make_patches(aux[1],self.size*4,scale=1)
       sample = (sample1,sample2)
 
-    return sample
+    if self.repatch_data = False:
+      return sample
+    else
+      return sample, (mask_p, patches_base, t_size, padding), (mask_p2, patches_base2, t_size2, padding2)
 
 def SRTransform_patches():
   """
@@ -166,11 +170,12 @@ class SRDataLoader_patches(DataLoader):
               scale=4,reupscale=None,
               single=None, batch_size=4, 
               size=16, shuffle=True,
-              num_workers=0):
+              num_workers=0,repatch_data = False):
     self.batch_size = batch_size
     self.shuffle = shuffle 
     self.num_workers = num_workers
     self.size = size
+    self.repatch_data = repatch_data
     self.init_transform_patches()
     self.init_rescaler(scale, reupscale, single)
     self.init_dataset_patches(path, self.transform, self.rescaler)
@@ -182,7 +187,7 @@ class SRDataLoader_patches(DataLoader):
     self.rescaler = Rescaler(scale, reupscale, single)
 
   def init_dataset_patches(self, path, transform, rescaler):
-    self.dataset = SRDataset_patches(path, transform, rescaler, size = self.size)
+    self.dataset = SRDataset_patches(path, transform, rescaler, size = self.size, repatch_data = self.repatch_data)
 
   def get_dataloader_patches(self):
     return DataLoader(self.dataset, batch_size=self.batch_size,
