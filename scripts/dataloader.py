@@ -148,9 +148,9 @@ class SRDataset_patches(Dataset):
       sample2, mask_p2, patches_base2, t_size2, padding2 = make_patches(aux[1],self.size*4,scale=1)
       sample = (sample1,sample2)
 
-    if self.repatch_data = False:
+    if self.repatch_data == False:
       return sample
-    else
+    else:
       return sample, (mask_p, patches_base, t_size, padding), (mask_p2, patches_base2, t_size2, padding2)
 
 def SRTransform_patches():
