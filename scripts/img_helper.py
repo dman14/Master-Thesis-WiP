@@ -323,6 +323,7 @@ def image_from_patches(tensor_list, mask_t, base_tensor, t_size, tile_size=256, 
 
     for t, tile in enumerate(tensor_list):
          #print(tile.size())
+         #tile = torch.from_numpy(tile)
          tile = tile.type(torch.FloatTensor)
          tile = tile.to('cuda')
          base_tensor[[t], :, :] = tile
