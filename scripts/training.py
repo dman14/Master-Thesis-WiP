@@ -327,7 +327,7 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
     #for index in range (0,len(data_img[0][0])):
     for index in range (0,1):
       #index = len(data_img[0][0]) // 2
-      index = random.randint(0, len(data_img[0][0]))
+      index = random.randint(0, len(data_img[0][0])-1)
       model.zero_grad()
       data = data_img[0][0][index].to(device)
       target = data_img[0][1][index].to(device)
@@ -375,7 +375,7 @@ def test_step_patch(model, device, test_loader, loss_func):
       #print("Someting")
       for index in range (0,1):
         #index = len(data_img[0][0]) // 2
-        index = random.randint(0, len(data_img[0][0]))
+        index = random.randint(0, len(data_img[0][0])-1)
         model.zero_grad()
         data = data_img[0][0][index].to(device)
         target = data_img[0][1][index].to(device)
