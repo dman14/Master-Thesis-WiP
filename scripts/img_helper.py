@@ -51,8 +51,9 @@ def save_img(img, name="saved_img", path=None, form=".png"):
   try:
     img.save(dest)
   except AttributeError:
-    trans = transforms.ToPILImage()
-    trans(img).save(dest)
+    #trans = transforms.ToPILImage()
+    #trans(img).save(dest)
+    cv2.imwrite(dest, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
 
 
 class Rescaler(object):
