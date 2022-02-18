@@ -269,7 +269,7 @@ def quality_measure_YCbCr(target, output):
   y2 = output_ycbcr[:,:,0]
  
   psnr = cv2.PSNR(y1, y2) 
-  score, diff = ssim(target, output, multichannel= True, full = True)
+  score, diff = ssim(y1.astype(np.uint8), y2.astype(np.uint8), multichannel= False, full = True)
 
   return psnr, score
 
