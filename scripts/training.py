@@ -326,7 +326,8 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
   for data_img in train_loader:
     #for index in range (0,len(data_img[0][0])):
     for index in range (0,1):
-      index = len(data_img[0][0]) // 2
+      #index = len(data_img[0][0]) // 2
+      index = random.randint(0, len(data_img[0][0]))
       model.zero_grad()
       data = data_img[0][0][index].to(device)
       target = data_img[0][1][index].to(device)
@@ -361,6 +362,7 @@ def training_step_patch(model, device, train_loader, optimizer, loss_func,wandb,
       if counter % 100 == 0:
         #wandb.log(stats)
         print("-Batch nr. ",counter,", ELBO:",stats['elbo'],"Distrortion:",stats['distortion'])
+      index = 2
     scheduler.step()
   return stats
 
@@ -372,7 +374,8 @@ def test_step_patch(model, device, test_loader, loss_func):
     for data_img in test_loader:
       #print("Someting")
       for index in range (0,1):
-        index = len(data_img[0][0]) // 2
+        #index = len(data_img[0][0]) // 2
+        index = random.randint(0, len(data_img[0][0]))
         model.zero_grad()
         data = data_img[0][0][index].to(device)
         target = data_img[0][1][index].to(device)
@@ -390,6 +393,7 @@ def test_step_patch(model, device, test_loader, loss_func):
         keys = sorted(stats.keys())
         aux = torch.stack([torch.as_tensor(stats[k]).detach().cpu().float() for k in keys])
         stats_valid.append({k: aux[i].item() for (i,k) in enumerate(keys)})
+        index = 2
     vals = [a['elbo'] for a in stats_valid]
     #vals = vals.detach().cpu().numpy()
     finite = np.array(vals, dtype=float)[np.isfinite(vals)]
