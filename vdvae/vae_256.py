@@ -256,6 +256,7 @@ class VAE_256(HModule):
     def build(self):
         self.encoder = Encoder(self.H)
         self.decoder = Decoder(self.H)
+        self.temp = None
 
     def forward(self, x, x_target, activations_sr= None):
         activations = self.encoder.forward(x)
@@ -275,11 +276,11 @@ class VAE_256(HModule):
         _, stats = self.decoder.forward(activations, get_latents=True)
         return stats
 
-    def forward_uncond_samples(self, n_batch, t=None):
+    def forward_uncond_samples(self, n_batch, t=self.temp):
         px_z = self.decoder.forward_uncond(n_batch, t=t)
         return self.decoder.out_net.sample(px_z)
 
-    def forward_samples_set_latents(self, n_batch, latents, t=None):
+    def forward_samples_set_latents(self, n_batch, latents, t=self.temp):
         px_z = self.decoder.forward_manual_latents(n_batch, latents, t=t)
         return self.decoder.out_net.sample(px_z)
 
@@ -290,3 +291,5 @@ class VAE_256(HModule):
     def forward_sr_sample(self, n_batch, activations_sr):
         px_z = self.decoder.forward_sr(n_batch, activations_sr)
         return self.decoder.out_net.sample(px_z)
+    def set_temp(t=None):
+        self.temp = t

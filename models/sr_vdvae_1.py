@@ -87,6 +87,9 @@ class SRVAE(nn.Module):
     output = self.ema_vae.forward_sr_sample(n_batch, activations_sr)
     return output
 
+  def set_temp(t=1):
+    ema_vae.set_temp(t)
+
   def preprocess_func(self,x):
     shift = -115.92961967
     scale = 1. / 69.37404
