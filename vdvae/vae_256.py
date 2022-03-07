@@ -242,12 +242,12 @@ class Decoder(HModule):
         xs[self.H.image_size] = self.final_fn(xs[self.H.image_size])
         return xs[self.H.image_size]
 
-    def forward_sr(self, n, activations_sr=None):
+    def forward_sr(self, n, activations_sr=None,t=None):
         xs = {}
         for bias in self.bias_xs:
             xs[bias.shape[2]] = bias.repeat(n, 1, 1, 1)
         for idx, block in enumerate(self.dec_blocks):
-            xs = block.forward_uncond(xs, activations_sr=activations_sr)
+            xs = block.forward_uncond(xs, activations_sr=activations_sr,t=t)
         xs[self.H.image_size] = self.final_fn(xs[self.H.image_size])
         return xs[self.H.image_size]
 
@@ -291,7 +291,7 @@ class VAE_256(HModule):
         return activations
 
     def forward_sr_sample(self, n_batch, activations_sr):
-        px_z = self.decoder.forward_sr(n_batch, activations_sr)
+        px_z = self.decoder.forward_sr(n_batch, activations_sr,t=self.temp)
         return self.decoder.out_net.sample(px_z)
     def set_temp(self,t=None):
         self.temp = t
